@@ -37,10 +37,6 @@ GROUP_ID = int(os.getenv("TELEGRAM_GROUP_ID"))
 GROUP_ID2 = int(os.getenv("TELEGRAM_GROUP_ID"))
 GROUP_ID3 = int(os.getenv("TELEGRAM_GROUP_ID"))
 # === Проверка токена ===
-if not TOKEN or not GROUP_ID:
-    raise ValueError("TELEGRAM_BOT_TOKEN и TELEGRAM_GROUP_ID должны быть заданы в .env файле!")
-if not os.getenv("SECRET_KEY"):
-    raise ValueError("SECRET_KEY missing")
 # === Инициализация Flask ===
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///database.db'  # Используем SQLite
@@ -51,8 +47,7 @@ app.config['SUPPLY_UPLOAD_FOLDER'] = os.path.join(app.config['UPLOAD_FOLDER'], '
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # максимум 16 МБ
 app.config['WTF_CSRF_TIME_LIMIT'] = None  # CSRF без истечения срока
 app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SECURE'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)  # <== вот это новое
 
