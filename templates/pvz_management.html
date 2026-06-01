@@ -1,0 +1,1411 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Управление ПВЗ</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-light: #e6ebff;
+            --primary-dark: #3a56d4;
+            --secondary: #6c757d;
+            --success: #10b981;
+            --success-light: #d1fae5;
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --info: #3b82f6;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --card-bg: #ffffff;
+            --body-bg: #f8fafc;
+            --text: #2d3748;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --shadow: rgba(67, 97, 238, 0.08);
+        }
+
+        .dark-theme {
+            --primary: #60a5fa;
+            --primary-light: rgba(96, 165, 250, 0.15);
+            --primary-dark: #3b82f6;
+            --secondary: #94a3b8;
+            --success: #34d399;
+            --success-light: rgba(52, 211, 153, 0.15);
+            --danger: #f87171;
+            --danger-light: rgba(248, 113, 113, 0.15);
+            --warning: #fbbf24;
+            --warning-light: rgba(251, 191, 36, 0.15);
+            --info: #60a5fa;
+            --light: #1e293b;
+            --dark: #f8f9fa;
+            --card-bg: #334155;
+            --body-bg: #0f172a;
+            --text: #f1f5f9;
+            --text-light: #94a3b8;
+            --border: #475569;
+            --shadow: rgba(0, 0, 0, 0.15);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background-color: var(--body-bg);
+            color: var(--text);
+            transition: all 0.3s ease;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin-top: 20px;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        .main-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .main-header h1 {
+            font-weight: 700;
+            font-size: 2.5rem;
+            color: var(--text);
+            margin-bottom: 10px;
+            position: relative;
+            display: inline-block;
+            padding-bottom: 15px;
+        }
+
+        .main-header h1:after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            border-radius: 2px;
+        }
+
+        .main-header .subtitle {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .main-menu {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 4px 20px var(--shadow);
+            flex-wrap: wrap;
+            margin-bottom: 40px;
+            border: 1px solid var(--border);
+        }
+
+        .menu-group {
+            position: relative;
+        }
+
+        .menu-toggle {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text);
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.2s ease;
+            min-width: 100px;
+            max-width: 140px;
+        }
+
+        .menu-toggle i {
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+            color: var(--primary);
+            transition: all 0.3s ease;
+        }
+
+        .menu-toggle span {
+            font-size: 0.85rem;
+            white-space: nowrap;
+        }
+
+        .menu-toggle:hover {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .menu-toggle.active {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+
+        .menu-toggle.active i {
+            color: white;
+        }
+
+        .dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px var(--shadow);
+            min-width: 200px;
+            z-index: 1000;
+            text-align: left;
+            padding: 8px;
+            margin-top: 8px;
+            opacity: 0;
+            transform: translateX(-50%) translateY(-10px);
+            transition: all 0.2s ease;
+        }
+
+        .dropdown.show {
+            display: block;
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .dropdown a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            color: var(--text);
+            text-decoration: none;
+            font-weight: 500;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+
+        .dropdown a i {
+            width: 18px;
+            text-align: center;
+            color: var(--primary);
+        }
+
+        .dropdown a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            transform: translateX(4px);
+        }
+
+        .menu-item.logout {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            border-radius: 12px;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.3s ease;
+            min-width: 100px;
+            border: none;
+        }
+
+        .menu-item.logout:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .menu-item.logout i {
+            color: white;
+        }
+
+        .pvz-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .pvz-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .pvz-card:before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--success));
+            opacity: 0.8;
+        }
+
+        .pvz-card:hover {
+            transform: translateY(-6px);
+            box-shadow: 0 16px 32px var(--shadow);
+            border-color: var(--primary);
+        }
+
+        .pvz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .pvz-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pvz-name i {
+            color: var(--primary);
+        }
+
+        .pvz-id {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            background: var(--primary-light);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-family: monospace;
+        }
+
+        .pvz-address {
+            color: var(--text-light);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            padding: 12px;
+            background: var(--primary-light);
+            border-radius: 10px;
+            border-left: 3px solid var(--primary);
+        }
+
+        .pvz-address i {
+            color: var(--primary);
+            margin-top: 2px;
+        }
+
+        .income-section {
+            background: linear-gradient(135deg, var(--success-light), transparent);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--success-light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .income-section:before {
+            content: '💰';
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 1.5rem;
+            opacity: 0.3;
+        }
+
+        .income-label {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .income-label i {
+            color: var(--success);
+        }
+
+        .income-value {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--success);
+            margin-bottom: 4px;
+        }
+
+        .income-period {
+            font-size: 0.8rem;
+            color: var(--text-light);
+        }
+
+        .pvz-stats {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .stat-item {
+            flex: 1;
+            min-width: 120px;
+            background: var(--primary-light);
+            border-radius: 12px;
+            padding: 14px;
+            text-align: center;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-item:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .stat-icon {
+            font-size: 1.3rem;
+            margin-bottom: 8px;
+            color: var(--primary);
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-light);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .last-month {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            color: var(--text-light);
+            padding: 12px 14px;
+            background: var(--primary-light);
+            border-radius: 10px;
+            margin-top: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .last-month i {
+            color: var(--primary);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn {
+            border-radius: 10px;
+            padding: 10px 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+            font-size: 0.9rem;
+        }
+
+        .btn i {
+            font-size: 0.9rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #059669);
+            color: white;
+            border-color: var(--success);
+        }
+
+        .btn-success:hover {
+            background: linear-gradient(135deg, #059669, var(--success));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #dc2626);
+            color: white;
+            border-color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, var(--danger));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, var(--warning), #d97706);
+            color: white;
+            border-color: var(--warning);
+        }
+
+        .btn-warning:hover {
+            background: linear-gradient(135deg, #d97706, var(--warning));
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .edit-btn {
+            background: var(--warning-light);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .edit-btn:hover {
+            background: var(--warning);
+            color: white;
+            transform: scale(1.1);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+        }
+
+        .form-card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 28px;
+            border: 1px solid var(--border);
+            margin-bottom: 32px;
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .form-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .form-title i {
+            color: var(--primary);
+        }
+
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            transition: all 0.2s ease;
+            font-size: 0.95rem;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.1);
+        }
+
+        .theme-toggle {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 9999;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: white;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+
+        .theme-toggle:hover {
+            transform: rotate(15deg) scale(1.1);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.3);
+        }
+
+        .theme-toggle i {
+            font-size: 1.2rem;
+        }
+
+        .admin-link {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            padding: 10px 16px;
+            border-radius: 24px;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border: none;
+            box-shadow: 0 4px 12px rgba(67, 97, 238, 0.2);
+        }
+
+        .admin-link:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(67, 97, 238, 0.3);
+        }
+
+        .scroll-to-top {
+            position: fixed;
+            bottom: 76px;
+            right: 20px;
+            z-index: 9998;
+            background: linear-gradient(135deg, var(--success), #059669);
+            border: none;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+        }
+
+        .scroll-to-top.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .scroll-to-top:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+        }
+
+        .scroll-to-top i {
+            font-size: 1.1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-light);
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 2px dashed var(--border);
+            margin: 20px 0;
+        }
+
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 20px;
+            color: var(--border);
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 12px;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: var(--text);
+            margin: 40px 0 24px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+        .modal-content {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            color: var(--text);
+            box-shadow: 0 10px 40px var(--shadow);
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border);
+            padding: 20px 24px;
+        }
+
+        .modal-title {
+            color: var(--text);
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .btn-close {
+            filter: invert(1) grayscale(100%) brightness(200%);
+        }
+
+        .alert {
+            border-radius: 10px;
+            border: 1px solid transparent;
+            padding: 14px;
+            margin-bottom: 16px;
+            font-size: 0.9rem;
+        }
+
+        .alert-info {
+            background: var(--primary-light);
+            border-color: var(--primary);
+            color: var(--text);
+        }
+
+        .alert-danger {
+            background: var(--danger-light);
+            border-color: var(--danger);
+            color: var(--text);
+        }
+
+        .alert-warning {
+            background: var(--warning-light);
+            border-color: var(--warning);
+            color: var(--text);
+        }
+
+        .list-group-item {
+            background: var(--card-bg);
+            border-color: var(--border);
+            color: var(--text);
+            padding: 12px 16px;
+            font-size: 0.9rem;
+        }
+
+        .list-group-item-danger {
+            background: var(--danger-light);
+            border-color: var(--danger);
+        }
+
+        .income-highlight {
+            color: var(--success);
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        /* Медиа-запросы */
+        @media (max-width: 768px) {
+            .container {
+                padding-left: 12px;
+                padding-right: 12px;
+            }
+
+            .main-header h1 {
+                font-size: 2rem;
+            }
+
+            .main-menu {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+                padding: 16px;
+            }
+
+            .menu-group {
+                width: 100%;
+            }
+
+            .menu-toggle {
+                flex-direction: row;
+                justify-content: flex-start;
+                width: 100%;
+                max-width: 100%;
+                padding: 14px;
+            }
+
+            .menu-toggle i {
+                margin-bottom: 0;
+                margin-right: 12px;
+            }
+
+            .dropdown {
+                position: static;
+                transform: none;
+                box-shadow: none;
+                border: none;
+                background: var(--body-bg);
+                display: none;
+                width: 100%;
+                margin-top: 8px;
+                padding-left: 12px;
+                opacity: 1;
+            }
+
+            .dropdown.show {
+                display: block;
+                transform: none;
+            }
+
+            .menu-item.logout {
+                width: 100%;
+                padding: 14px;
+            }
+
+            .pvz-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+
+            .pvz-card {
+                padding: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: row;
+                gap: 8px;
+            }
+
+            .btn {
+                padding: 10px 12px;
+                font-size: 0.85rem;
+            }
+
+            .stat-item {
+                min-width: calc(50% - 6px);
+            }
+
+            .form-card {
+                padding: 20px;
+            }
+
+            .income-value {
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .main-header h1 {
+                font-size: 1.7rem;
+            }
+
+            .section-title {
+                font-size: 1.2rem;
+            }
+
+            .pvz-name {
+                font-size: 1.2rem;
+            }
+
+            .stat-item {
+                min-width: 100%;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .income-value {
+                font-size: 1.1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="theme-toggle" id="themeToggle">
+        <i class="fas fa-sun"></i>
+    </button>
+
+    <button class="scroll-to-top" id="scrollToTop">
+        <i class="fas fa-chevron-up"></i>
+    </button>
+
+    <a href="{{ url_for('pvz_management') }}" class="admin-link">
+        <i class="fas fa-home"></i> На главную
+    </a>
+
+    <div class="container">
+        <div class="main-header">
+            <h1>Управление ПВЗ</h1>
+            <p class="subtitle">Мониторинг и управление пунктами выдачи заказов</p>
+        </div>
+
+
+
+            <!-- ПВЗ -->
+
+            <!-- Выход -->
+            <a href="{{ url_for('logout') }}" class="menu-item logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Выход</span>
+            </a>
+        </nav>
+
+        <!-- Форма добавления нового ПВЗ -->
+        <div class="form-card">
+            <div class="form-title">
+                <i class="fas fa-plus-circle"></i> Добавить новый ПВЗ
+            </div>
+            <form method="POST" action="{{ url_for('add_pvz') }}" class="row g-3">
+                <div class="col-md-6">
+                    <label for="name" class="form-label">Название ПВЗ *</label>
+                    <input type="text" class="form-control" id="name" name="name" placeholder="Например: ПВЗ Центральный" required>
+                    <div class="form-text text-muted">Уникальное название для ПВЗ</div>
+                </div>
+                <div class="col-md-6">
+                    <label for="address" class="form-label">Адрес</label>
+                    <input type="text" class="form-control" id="address" name="address" placeholder="Полный адрес ПВЗ">
+                    <div class="form-text text-muted">Необязательное поле</div>
+                </div>
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-primary w-100 py-2">
+                        <i class="fas fa-save me-2"></i>Добавить ПВЗ
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Список ПВЗ -->
+        <div class="section-title">
+            <i class="fas fa-list"></i>Список ПВЗ
+        </div>
+
+        {% if pvz_stats %}
+        <div class="pvz-grid">
+            {% for stat in pvz_stats %}
+            {% set pvz = stat.pvz %}
+            <div class="pvz-card">
+                <div class="pvz-header">
+                    <div>
+                        <div class="pvz-name">
+                            <i class="fas fa-store"></i>{{ pvz.name }}
+                            <span class="pvz-id">ID: {{ pvz.id }}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn edit-btn" data-bs-toggle="modal" data-bs-target="#editModal{{ pvz.id }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+
+                {% if pvz.address %}
+                <div class="pvz-address">
+                    <i class="fas fa-map-marker-alt"></i>{{ pvz.address }}
+                </div>
+                {% else %}
+                <div class="pvz-address">
+                    <i class="fas fa-map-marker-alt"></i>Адрес не указан
+                </div>
+                {% endif %}
+
+                <!-- Секция ПРИБЫЛИ (вместо доходов) -->
+<div class="income-section">
+    <div class="income-label">
+        <i class="fas fa-chart-line"></i>Общая прибыль
+    </div>
+    <div class="income-value" style="color: {% if stat.total_profit > 0 %}var(--success){% else %}var(--danger){% endif %};">
+        {% if stat.total_profit %}
+            {{ "%.2f"|format(stat.total_profit) }} ₽
+        {% else %}
+            0.00 ₽
+        {% endif %}
+    </div>
+    <div class="income-period">
+        {% if stat.income_period %}
+            за {{ stat.income_period }}
+        {% else %}
+            нет данных
+        {% endif %}
+    </div>
+</div>
+
+                <!-- Статистика -->
+                <div class="pvz-stats">
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-value">{{ stat.staff_count }}</div>
+                        <div class="stat-label">сотрудников</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="stat-value">{{ stat.months_count }}</div>
+                        <div class="stat-label">месяцев</div>
+                    </div>
+                    {% if stat.profit_percentage %}
+                    <div class="stat-item">
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="stat-value income-highlight">{{ stat.profit_percentage }}%</div>
+                        <div class="stat-label">рентабельность</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="last-month">
+    <span>
+        <i class="fas fa-history"></i>Последний месяц: {{ stat.last_month }}
+    </span>
+    {% if stat.last_month_profit is not none %}
+    <span class="income-highlight" style="color: {% if stat.last_month_profit > 0 %}var(--success){% else %}var(--danger){% endif %};">
+        {% if stat.last_month_profit > 0 %}+{% endif %}{{ "%.2f"|format(stat.last_month_profit) }} ₽
+    </span>
+    {% endif %}
+</div>
+
+                <!-- Кнопки действий -->
+                <div class="action-buttons">
+                    <a href="{{ url_for('pvz', pvz_id=pvz.id) }}" class="btn btn-primary">
+                        <i class="fas fa-chart-line me-1"></i> Финансы
+                    </a>
+                    <a href="{{ url_for('pvz_staff', pvz_id=pvz.id) }}" class="btn btn-success">
+                        <i class="fas fa-users me-1"></i> Сотрудники
+                    </a>
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ pvz.id }}">
+                        <i class="fas fa-trash me-1"></i> Удалить
+                    </button>
+                </div>
+            </div>
+
+            <!-- Модальное окно редактирования ПВЗ -->
+            <div class="modal fade" id="editModal{{ pvz.id }}" tabindex="-1" aria-labelledby="editModalLabel{{ pvz.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="POST" action="{{ url_for('edit_pvz_details', pvz_id=pvz.id) }}">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="editModalLabel{{ pvz.id }}">
+                                    <i class="fas fa-edit me-2"></i>Редактировать ПВЗ
+                                </h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="mb-3">
+                                    <label for="editName{{ pvz.id }}" class="form-label">Название ПВЗ *</label>
+                                    <input type="text" class="form-control" id="editName{{ pvz.id }}" name="name" value="{{ pvz.name }}" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="editAddress{{ pvz.id }}" class="form-label">Адрес</label>
+                                    <input type="text" class="form-control" id="editAddress{{ pvz.id }}" name="address" value="{{ pvz.address or '' }}">
+                                </div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Изменение названия ПВЗ не повлияет на существующие данные.
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                    <i class="fas fa-times me-1"></i>Отмена
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>Сохранить
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Модальное окно удаления -->
+            <div class="modal fade" id="deleteModal{{ pvz.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ pvz.id }}" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title text-danger" id="deleteModalLabel{{ pvz.id }}">
+                                <i class="fas fa-exclamation-triangle me-2"></i>Подтверждение удаления
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Внимание! Это действие нельзя отменить!</strong>
+                            </div>
+
+                            <p>Вы собираетесь удалить ПВЗ <strong>"{{ pvz.name }}"</strong>.</p>
+
+                            <p class="fw-bold">Будут удалены:</p>
+                            <ul class="list-group mb-3">
+                                <li class="list-group-item list-group-item-danger">
+                                    <i class="fas fa-users me-2"></i>Все сотрудники ({{ stat.staff_count }} чел.)
+                                </li>
+                                <li class="list-group-item list-group-item-danger">
+                                    <i class="fas fa-chart-line me-2"></i>Все финансовые данные ({{ stat.months_count }} месяцев)
+                                </li>
+                                <li class="list-group-item list-group-item-danger">
+                                    <i class="fas fa-calendar-alt me-2"></i>Все смены и графики работы
+                                </li>
+                                <li class="list-group-item list-group-item-danger">
+                                    <i class="fas fa-clock me-2"></i>Все отметки о работе
+                                </li>
+                            </ul>
+
+                            <div class="alert alert-warning">
+                                <i class="fas fa-shield-alt me-2"></i>
+                                Для подтверждения введите название ПВЗ:
+                                <strong id="confirmName{{ pvz.id }}">{{ pvz.name }}</strong>
+                            </div>
+
+                            <div class="mb-3">
+                                <input type="text" class="form-control" id="confirmInput{{ pvz.id }}"
+                                       placeholder="Введите название ПВЗ для подтверждения"
+                                       oninput="checkConfirmDelete({{ pvz.id }})">
+                                <div class="form-text">Точное совпадение с названием выше</div>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>Отмена
+                            </button>
+                            <form method="POST" action="{{ url_for('delete_pvz_full', pvz_id=pvz.id) }}" class="d-inline">
+                                <button type="submit" class="btn btn-danger" id="deleteBtn{{ pvz.id }}" disabled>
+                                    <i class="fas fa-trash me-1"></i>Удалить ПВЗ
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-store"></i>
+            <h3>ПВЗ не найдены</h3>
+            <p class="mb-3">Добавьте первый ПВЗ, используя форму выше</p>
+            <p class="text-muted">После добавления ПВЗ вы сможете управлять его финансами и сотрудниками.</p>
+        </div>
+        {% endif %}
+
+        <!-- Дополнительные действия -->
+        <div class="form-card mt-4">
+            <div class="form-title">
+                <i class="fas fa-cogs"></i> Дополнительные действия
+            </div>
+            <div class="action-buttons">
+                <a href="{{ url_for('download_salary_excel') }}" class="btn btn-warning">
+                    <i class="fas fa-file-excel me-1"></i> Экспорт зарплат
+                </a>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#reportModal">
+                    <i class="fas fa-paper-plane me-1"></i> Отчет
+                </button>
+                <a href="{{ url_for('pvz_management') }}" class="btn btn-success">
+                    <i class="fas fa-home me-1"></i> На главную
+                </a>
+            </div>
+        </div>
+
+        <!-- Модальное окно отправки отчета -->
+        <div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="{{ url_for('notify_pvz') }}" id="reportForm">
+                        <div class="modal-header">
+                            <h5 class="modal-title" id="reportModalLabel">
+                                <i class="fas fa-paper-plane me-2"></i>Отправка отчета в Telegram
+                            </h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="reportPvzSelect" class="form-label">Выберите ПВЗ для отчета:</label>
+                                <select class="form-select" name="pvz_id" id="reportPvzSelect">
+                                    <option value="">Все ПВЗ (общий отчет)</option>
+                                    {% for stat in pvz_stats %}
+                                    <option value="{{ stat.pvz.id }}">{{ stat.pvz.name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Информация об отчете:</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>Будут отправлены данные за последние 12 месяцев</li>
+                                    <li>Включены доходы, расходы, прибыль и рентабельность</li>
+                                    <li>Для выбранного ПВЗ - подробный отчет с источниками доходов</li>
+                                    <li>Для всех ПВЗ - общий сводный отчет</li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                <i class="fas fa-times me-1"></i>Отмена
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-1"></i>Отправить отчет
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Тема
+        const toggleButton = document.getElementById('themeToggle');
+        const icon = toggleButton.querySelector('i');
+
+        function setTheme(isDark) {
+            if (isDark) {
+                document.body.classList.add('dark-theme');
+                icon.classList.remove('fa-sun');
+                icon.classList.add('fa-moon');
+                localStorage.setItem('theme', 'dark');
+            } else {
+                document.body.classList.remove('dark-theme');
+                icon.classList.remove('fa-moon');
+                icon.classList.add('fa-sun');
+                localStorage.setItem('theme', 'light');
+            }
+        }
+
+        const savedTheme = localStorage.getItem('theme');
+        setTheme(savedTheme === 'dark');
+
+        toggleButton.addEventListener('click', () => {
+            const isDark = !document.body.classList.contains('dark-theme');
+            setTheme(isDark);
+        });
+
+        // Управление меню по клику
+        let activeMenu = null;
+
+        document.querySelectorAll('.menu-toggle').forEach(toggle => {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                const menuId = this.getAttribute('data-menu');
+                const dropdown = document.getElementById(`${menuId}-dropdown`);
+
+                // Закрываем все открытые меню
+                document.querySelectorAll('.dropdown').forEach(drop => {
+                    if (drop !== dropdown) {
+                        drop.classList.remove('show');
+                    }
+                });
+
+                document.querySelectorAll('.menu-toggle').forEach(btn => {
+                    if (btn !== this) {
+                        btn.classList.remove('active');
+                    }
+                });
+
+                // Переключаем текущее меню
+                if (activeMenu === menuId) {
+                    dropdown.classList.remove('show');
+                    this.classList.remove('active');
+                    activeMenu = null;
+                } else {
+                    dropdown.classList.add('show');
+                    this.classList.add('active');
+                    activeMenu = menuId;
+                }
+            });
+        });
+
+        // Закрытие меню при клике вне его
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.menu-group')) {
+                document.querySelectorAll('.dropdown').forEach(dropdown => {
+                    dropdown.classList.remove('show');
+                });
+                document.querySelectorAll('.menu-toggle').forEach(toggle => {
+                    toggle.classList.remove('active');
+                });
+                activeMenu = null;
+            }
+        });
+
+        // Функция проверки подтверждения удаления
+        function checkConfirmDelete(pvzId) {
+            const confirmInput = document.getElementById(`confirmInput${pvzId}`);
+            const deleteBtn = document.getElementById(`deleteBtn${pvzId}`);
+            const confirmName = document.getElementById(`confirmName${pvzId}`).textContent;
+
+            if (confirmInput.value.trim() === confirmName) {
+                deleteBtn.disabled = false;
+                confirmInput.classList.remove('is-invalid');
+                confirmInput.classList.add('is-valid');
+            } else {
+                deleteBtn.disabled = true;
+                confirmInput.classList.remove('is-valid');
+                confirmInput.classList.add('is-invalid');
+            }
+        }
+
+        // Функция для очистки полей подтверждения при закрытии модального окна
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteModals = document.querySelectorAll('[id^="deleteModal"]');
+            deleteModals.forEach(modal => {
+                modal.addEventListener('hidden.bs.modal', function () {
+                    const modalId = this.id.replace('deleteModal', '');
+                    const confirmInput = document.getElementById(`confirmInput${modalId}`);
+                    const deleteBtn = document.getElementById(`deleteBtn${modalId}`);
+
+                    if (confirmInput) {
+                        confirmInput.value = '';
+                        confirmInput.classList.remove('is-valid', 'is-invalid');
+                    }
+
+                    if (deleteBtn) {
+                        deleteBtn.disabled = true;
+                    }
+                });
+            });
+
+            // Плавное появление карточек
+            const cards = document.querySelectorAll('.pvz-card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(10px)';
+
+                setTimeout(() => {
+                    card.style.transition = 'all 0.4s ease';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 80);
+            });
+
+            // Обработка формы отчета
+            const reportForm = document.getElementById('reportForm');
+            if (reportForm) {
+                reportForm.addEventListener('submit', function(e) {
+                    const select = document.getElementById('reportPvzSelect');
+                    const selectedValue = select.value;
+                    const selectedText = selectedValue === ""
+                        ? "все ПВЗ"
+                        : select.options[select.selectedIndex].text;
+
+                    if (!confirm(`Отправить отчет по ${selectedText} в Telegram?`)) {
+                        e.preventDefault();
+                    }
+                });
+            }
+        });
+
+        // Кнопка "Наверх"
+        const scrollToTopBtn = document.getElementById('scrollToTop');
+
+        window.addEventListener('scroll', () => {
+            if (window.pageYOffset > 300) {
+                scrollToTopBtn.classList.add('show');
+            } else {
+                scrollToTopBtn.classList.remove('show');
+            }
+        });
+
+        scrollToTopBtn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+
+        // Адаптация для мобильных устройств
+        function handleMobileMenu() {
+            if (window.innerWidth <= 768) {
+                document.querySelectorAll('.menu-toggle').forEach(toggle => {
+                    toggle.addEventListener('click', function(e) {
+                        const menuId = this.getAttribute('data-menu');
+                        const dropdown = document.getElementById(`${menuId}-dropdown`);
+                        const isOpen = dropdown.classList.contains('show');
+
+                        // Закрываем все меню
+                        document.querySelectorAll('.dropdown').forEach(drop => {
+                            drop.classList.remove('show');
+                        });
+
+                        // Открываем/закрываем текущее
+                        if (!isOpen) {
+                            dropdown.classList.add('show');
+                        }
+                    });
+                });
+            }
+        }
+
+        handleMobileMenu();
+        window.addEventListener('resize', handleMobileMenu);
+    </script>
+</body>
+</html>

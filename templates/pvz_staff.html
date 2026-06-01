@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ПВЗ — Сотрудники</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+html, body { overflow-x:hidden; background:#f4f4f9; font-family:Arial, sans-serif; }
+h1, h2, h3, h4 { font-weight:600; }
+.card{background:#fff; padding:20px; border-radius:10px; margin-bottom:20px; max-width:100%; box-shadow:0 0 15px rgba(0,0,0,0.05);}
+canvas{background:#fff; padding:10px; border-radius:8px; width:100% !important; max-height:400px; height:auto !important;}
+.styled-table{width:100%; border-collapse:collapse; text-align:center;}
+.nav-buttons { display:flex; gap:10px; margin-bottom:20px; }
+.nav-buttons .btn { flex:1; background:#dbeafe; color:#1e3a8a; font-weight:600; }
+.styled-table th, .styled-table td{padding:10px; border-bottom:1px solid #ddd;}
+.styled-table thead tr{background:#229ED9; color:#fff; text-transform:uppercase;}
+.positive{color:green; font-weight:600;}
+.negative{color:red; font-weight:600;}
+.btn-telegram{background-color:#229ED9; color:white; font-weight:600;}
+.btn-telegram:hover{background-color:#1b8fcf;}
+
+/* Стили для улучшенных графиков */
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+}
+
+.chart-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Кнопка переключения темы */
+.theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #229ED9;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+/* Темная тема */
+.dark-theme {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.dark-theme .card {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    box-shadow: 0 0 15px rgba(255,255,255,0.05);
+}
+
+.dark-theme canvas {
+    background: #2d2d2d;
+}
+
+.dark-theme .styled-table {
+    color: #e0e0e0;
+}
+
+.dark-theme .styled-table th {
+    background: #229ED9;
+}
+
+.dark-theme .styled-table td {
+    border-bottom: 1px solid #444;
+}
+
+.dark-theme .nav-buttons .btn {
+    background: #333;
+    color: #e0e0e0;
+}
+
+/* Стиль для выбора ПВЗ */
+.pvz-selector {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+
+/* Стили для календаря смен */
+.shift-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 15px;
+}
+
+.shift-day {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px 6px;
+    text-align: center;
+    background: #ffffff;
+    font-size: 0.9em;
+    min-height: 60px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.shift-day:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.shift-day.today {
+    border: 3px solid #28a745;
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724 !important;
+    font-weight: bold;
+}
+
+.day-number {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 4px;
+}
+
+.worker-name {
+    font-size: 0.85em;
+    margin-bottom: 2px;
+    font-weight: 500;
+}
+
+.checkin-time {
+    font-size: 0.75em;
+    font-weight: bold;
+    margin-top: 3px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.05);
+}
+
+.checkin-time.late {
+    background: #dc3545;
+    color: white !important;
+}
+
+.dark-theme .shift-day {
+    background: #2d2d2d;
+    border-color: #444;
+    color: #e0e0e0;
+}
+
+.dark-theme .shift-day.today {
+    background: linear-gradient(135deg, #155724, #1e7e34);
+    border-color: #28a745;
+    color: #d4edda !important;
+}
+
+/* Стили для карточек сотрудников */
+.staff-card {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #229ED9;
+    transition: all 0.3s ease;
+}
+
+.staff-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+.staff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.staff-name {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+}
+
+.staff-rate {
+    font-size: 0.9em;
+    color: #666;
+}
+
+.staff-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    text-align: center;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-label {
+    font-size: 0.8em;
+    color: #666;
+    margin-bottom: 2px;
+}
+
+.stat-value {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: #333;
+}
+
+.dark-theme .staff-card {
+    background: #2d2d2d;
+    border-left-color: #229ED9;
+}
+
+.dark-theme .staff-name {
+    color: #e0e0e0;
+}
+
+.dark-theme .staff-rate {
+    color: #aaa;
+}
+
+.dark-theme .stat-label {
+    color: #aaa;
+}
+
+.dark-theme .stat-value {
+    color: #e0e0e0;
+}
+
+/* Стили для модальных окон */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+}
+
+.modal-header {
+    background: #229ED9;
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-title {
+    font-weight: 600;
+}
+
+/* Стили для фильтров */
+.filter-section {
+    background: white;
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+/* Загрузка */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    display: none;
+}
+
+.dark-theme .loading-overlay {
+    background: rgba(0,0,0,0.8);
+}
+
+/* Уведомления */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    min-width: 300px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+
+    .shift-calendar {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+
+    .shift-day {
+        min-height: 50px;
+        padding: 8px 4px;
+    }
+
+    .staff-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .theme-toggle {
+        width: 45px;
+        height: 45px;
+        font-size: 18px;
+        bottom: 15px;
+        right: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .shift-calendar {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .shift-day {
+        min-height: 45px;
+        padding: 6px 2px;
+    }
+
+    .nav-buttons {
+        flex-direction: column;
+    }
+
+    .nav-buttons .btn {
+        width: 100%;
+    }
+}
+
+@media (max-width: 360px) {
+    .shift-calendar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .shift-day {
+        min-height: 40px;
+    }
+}
+
+/* Стили для вкладок */
+.nav-tabs {
+    border-bottom: 2px solid #dee2e6;
+}
+
+.nav-tabs .nav-link {
+    color: #6c757d;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    padding: 8px 16px;
+    font-weight: 500;
+}
+
+.nav-tabs .nav-link.active {
+    color: #229ED9;
+    background: transparent;
+    border-color: #229ED9;
+}
+
+.nav-tabs .nav-link:hover {
+    border-color: #dee2e6;
+}
+
+.dark-theme .nav-tabs {
+    border-bottom-color: #444;
+}
+
+.dark-theme .nav-tabs .nav-link {
+    color: #aaa;
+}
+
+.dark-theme .nav-tabs .nav-link.active {
+    color: #229ED9;
+    border-color: #229ED9;
+}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Заголовок и выбор ПВЗ -->
+    <div class="pvz-selector">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="mb-0"><i class="fas fa-users me-2"></i>ПВЗ — Сотрудники</h1>
+                {% if selected_pvz %}
+                <p class="text-muted mb-0 mt-2">
+                    <i class="fas fa-store me-1"></i>{{ selected_pvz.name }}
+                    {% if selected_pvz.address %}
+                    <br><small><i class="fas fa-map-marker-alt me-1"></i>{{ selected_pvz.address }}</small>
+                    {% endif %}
+                </p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-2">
+                    <form method="GET" class="d-flex gap-2 flex-grow-1">
+                        <select name="pvz_id" class="form-select" onchange="window.location.href='{{ url_for('pvz_staff') }}?pvz_id='+this.value+'&month={{ request.args.get('month', '') }}'">
+                            {% for pvz_item in pvz_list %}
+                            <option value="{{ pvz_item.id }}" {% if pvz_item.id == selected_pvz.id %}selected{% endif %}>
+                                {{ pvz_item.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <a href="{{ url_for('pvz_management') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card">
+                <h5><i class="fas fa-calendar-day me-2"></i>Сегодня</h5>
+                <p class="fs-4 mb-1"><strong>{{ today }}</strong></p>
+                <p class="mb-0">Работает: <span class="badge bg-success">{{ current_worker or "—" }}</span></p>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card">
+                <h5><i class="fas fa-money-bill-wave me-2"></i>Ближайшая выплата</h5>
+                <p class="fs-4 mb-1"><strong>{{ next_salary_day }}</strong></p>
+                <p class="mb-0">К выплате: <span class="badge bg-primary">{{ salary_to_pay }} ₽</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Управление сотрудниками -->
+    <div class="card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="fas fa-user-cog me-2"></i>Управление сотрудниками</h4>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addStaffModal">
+                <i class="fas fa-plus me-1"></i>Добавить сотрудника
+            </button>
+        </div>
+
+        <!-- Карточки сотрудников -->
+        <div class="row" id="staffCards">
+            {% for staff in staff_list %}
+            {% set s = stats[loop.index0] if loop.index0 < stats|length else {'shifts_done': 0, 'shifts_expected': 0, 'salary_done': 0, 'salary_expected': 0} %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="staff-card" id="staff-card-{{ staff.id }}">
+                    <div class="staff-header">
+                        <div>
+                            <div class="staff-name" id="staff-name-{{ staff.id }}">{{ staff.name }}</div>
+                            <div class="staff-rate">Ставка: <span id="staff-rate-{{ staff.id }}">{{ staff.rate or 0 }}</span> ₽</div>
+                        </div>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="#" onclick="editStaff({{ staff.id }})">
+                                    <i class="fas fa-edit me-2"></i>Редактировать
+                                </a></li>
+                                <li><a class="dropdown-item text-danger" href="#" onclick="deleteStaff({{ staff.id }})">
+                                    <i class="fas fa-trash me-2"></i>Удалить
+                                </a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="staff-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Смен</span>
+                            <span class="stat-value">{{ s.shifts_done }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Ожидается</span>
+                            <span class="stat-value">{{ s.shifts_expected }}</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Зарплата</span>
+                            <span class="stat-value">{{ "%.0f"|format(s.salary_done) }} ₽</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Ожидаемая</span>
+                            <span class="stat-value">{{ "%.0f"|format(s.salary_expected) }} ₽</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Графики -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <h4 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Распределение зарплат</h4>
+                </div>
+                <div class="chart-container">
+                    <canvas id="salaryChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <h4 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Статистика смен</h4>
+                </div>
+                <div class="chart-container">
+                    <canvas id="shiftsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Календарь смен -->
+    <div class="card mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>График смен на {{ month_label }}</h4>
+            <button class="btn btn-outline-info btn-sm" onclick="toggleDetailedView()">
+                <i class="fas fa-table me-1"></i>Таблица
+            </button>
+        </div>
+
+        <!-- Календарь -->
+        <div class="shift-calendar" id="shiftCalendar">
+            {% for sh in shifts %}
+            {% set is_today = sh.date.strftime('%d.%m.%Y') == today %}
+            <div class="shift-day {% if is_today %}today{% endif %}"
+                 style="background-color: {{ worker_colors.get(sh.worker_id, '#ffffff') }};"
+                 data-shift-id="{{ sh.id }}"
+                 data-date="{{ sh.date.strftime('%d.%m.%Y') }}"
+                 data-worker-id="{{ sh.worker_id }}"
+                 data-worker-name="{{ sh.worker.name }}"
+                 data-rate="{{ sh.rate }}"
+                 data-checkin-time="{{ sh.checkin_time.strftime('%H:%M') if sh.checkin_time else '' }}"
+                 onclick="editShift({{ sh.id }})">
+                <div class="day-number">{{ sh.date.strftime('%d') }}</div>
+                <div class="worker-name">{{ sh.worker.name.split(' ')[0] }}</div>
+                {% if sh.checkin_time %}
+                    {% set checkin_time_str = sh.checkin_time.strftime('%H:%M') %}
+                    <div class="checkin-time {% if checkin_time_str > '09:06' %}late{% endif %}">
+                        {{ checkin_time_str }}
+                        {% if checkin_time_str > '09:06' %} ⚠️{% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Детальная таблица -->
+        <div id="detailedShifts" style="display: none; margin-top: 20px;">
+            <div class="table-responsive">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Дата</th>
+                            <th>Сотрудник</th>
+                            <th>Ставка</th>
+                            <th>Пришел в</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for sh in shifts %}
+                        {% set is_today = sh.date.strftime('%d.%m.%Y') == today %}
+                        <tr class="{% if is_today %}table-success{% endif %}">
+                            <td>{{ sh.date.strftime('%d.%m.%Y') }}</td>
+                            <td>{{ sh.worker.name }}</td>
+                            <td>{{ "%.0f"|format(sh.rate) }} ₽</td>
+                            <td>
+                                {% if sh.checkin_time %}
+                                    {% set checkin_time_str = sh.checkin_time.strftime('%H:%M') %}
+                                    <span class="{% if checkin_time_str > '09:06' %}negative{% else %}positive{% endif %}">
+                                        {{ checkin_time_str }}
+                                        {% if checkin_time_str > '09:06' %} ⚠️{% endif %}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="filter-section">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="filter-actions">
+                    <button class="btn btn-outline-primary btn-sm" onclick="filterByMonth()">
+                        <i class="fas fa-filter me-1"></i>Текущий месяц
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="showAllData()">
+                        <i class="fas fa-eye me-1"></i>Показать все
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <form method="GET" class="d-flex gap-2">
+                    <input type="month" name="month" class="form-control" value="{{ request.args.get('month', '') }}"
+                           onchange="this.form.submit()">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Навигационные кнопки -->
+    <div class="nav-buttons">
+        <a href="{{ url_for('pvz_management') }}" class="btn">
+            <i class="fas fa-store me-2"></i>Управление ПВЗ
+        </a>
+        <a href="{{ url_for('pvz', pvz_id=selected_pvz.id) }}" class="btn">
+            <i class="fas fa-chart-line me-2"></i>Финансы
+        </a>
+        <a href="{{ url_for('push_staff', pvz_id=selected_pvz.id) }}" class="btn">
+            <i class="fas fa-user-clock me-2"></i>Отметки
+        </a>
+        <a href="{{ url_for('pvz_management') }}" class="btn">
+            <i class="fas fa-home me-2"></i>Главная
+        </a>
+    </div>
+</div>
+
+<!-- Кнопка переключения темы -->
+<button class="theme-toggle" id="themeToggle">🌙</button>
+
+<!-- Модальное окно добавления сотрудника -->
+<div class="modal fade" id="addStaffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-user-plus me-2"></i>Добавить сотрудника</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('add_staff') }}" id="addStaffForm">
+                <div class="modal-body">
+                    <input type="hidden" name="pvz_id" value="{{ selected_pvz.id }}">
+                    <div class="mb-3">
+                        <label class="form-label">Имя сотрудника</label>
+                        <input type="text" name="name" class="form-control" required>
+                        <div class="form-text">Имя должно быть уникальным для этого ПВЗ</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ставка за смену (₽)</label>
+                        <input type="number" name="rate" class="form-control" step="100" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования сотрудника -->
+<div class="modal fade" id="editStaffModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Редактировать сотрудника</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="" id="editStaffForm">
+                <div class="modal-body">
+                    <input type="hidden" name="pvz_id" value="{{ selected_pvz.id }}">
+                    <input type="hidden" id="editStaffId" name="staff_id">
+                    <div class="mb-3">
+                        <label class="form-label">Имя сотрудника</label>
+                        <input type="text" name="name" class="form-control" id="editStaffName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ставка за смену (₽)</label>
+                        <input type="number" name="rate" class="form-control" id="editStaffRate" step="100" min="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно редактирования смены -->
+<div class="modal fade" id="editShiftModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Редактировать смену</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('change_shift') }}" id="editShiftForm">
+                <div class="modal-body">
+                    <input type="hidden" name="shift_id" id="editShiftId">
+                    <div class="mb-3">
+                        <label class="form-label">Дата</label>
+                        <input type="text" id="editDate" class="form-control" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Сотрудник</label>
+                        <select name="worker_id" class="form-select" id="editWorker">
+                            {% for st in staff_list %}
+                            <option value="{{ st.id }}">{{ st.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ставка (₽)</label>
+                        <input type="number" name="rate" class="form-control" id="editRate" step="100" min="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+// Глобальные переменные
+let salaryChart = null;
+let shiftsChart = null;
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Инициализация
+    initializePage();
+    initializeCharts();
+});
+
+function initializePage() {
+    // Переключение темы
+    const themeToggle = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('theme') || 'light';
+
+    if (currentTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+        themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+    } else {
+        themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+    }
+
+    themeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-theme');
+
+        if (document.body.classList.contains('dark-theme')) {
+            localStorage.setItem('theme', 'dark');
+            themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+            localStorage.setItem('theme', 'light');
+            themeToggle.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+    });
+}
+
+function initializeCharts() {
+    // Данные для графиков
+    const staffNames = [{% for s in stats %}'{{ s.name }}',{% endfor %}];
+    const salaries = [{% for s in stats %}{{ s.salary_done }},{% endfor %}];
+    const shiftsDone = [{% for s in stats %}{{ s.shifts_done }},{% endfor %}];
+    const shiftsExpected = [{% for s in stats %}{{ s.shifts_expected }},{% endfor %}];
+
+    // График распределения зарплат
+    const salaryCtx = document.getElementById('salaryChart').getContext('2d');
+    salaryChart = new Chart(salaryCtx, {
+        type: 'doughnut',
+        data: {
+            labels: staffNames,
+            datasets: [{
+                data: salaries,
+                backgroundColor: [
+                    '#229ED9',
+                    '#dc3545',
+                    '#28a745',
+                    '#ffc107',
+                    '#6f42c1',
+                    '#fd7e14'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true,
+                        font: { size: 12 }
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.raw;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${new Intl.NumberFormat('ru-RU').format(value)} ₽ (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // График статистики смен
+    const shiftsCtx = document.getElementById('shiftsChart').getContext('2d');
+    shiftsChart = new Chart(shiftsCtx, {
+        type: 'bar',
+        data: {
+            labels: staffNames,
+            datasets: [
+                {
+                    label: 'Выполнено смен',
+                    data: shiftsDone,
+                    backgroundColor: '#229ED9',
+                    borderColor: '#1b7dac',
+                    borderWidth: 1,
+                    borderRadius: 5
+                },
+                {
+                    label: 'Ожидается смен',
+                    data: shiftsExpected,
+                    backgroundColor: '#28a745',
+                    borderColor: '#1e7e34',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return new Intl.NumberFormat('ru-RU').format(value);
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'top'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function editStaff(staffId) {
+    const staffName = document.getElementById(`staff-name-${staffId}`).textContent;
+    const staffRate = document.getElementById(`staff-rate-${staffId}`).textContent;
+
+    document.getElementById('editStaffId').value = staffId;
+    document.getElementById('editStaffName').value = staffName;
+    document.getElementById('editStaffRate').value = staffRate;
+
+    // Устанавливаем action формы
+    document.getElementById('editStaffForm').action = `/pvz/staff/edit/${staffId}`;
+
+    const modal = new bootstrap.Modal(document.getElementById('editStaffModal'));
+    modal.show();
+}
+
+function deleteStaff(staffId) {
+    const staffName = document.getElementById(`staff-name-${staffId}`).textContent;
+
+    if (confirm(`Вы уверены, что хотите удалить сотрудника "${staffName}"?`)) {
+        showLoading();
+
+        fetch(`/pvz/staff/delete/${staffId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                window.location.reload();
+            } else {
+                throw new Error('Ошибка при удалении сотрудника');
+            }
+        })
+        .catch(error => {
+            hideLoading();
+            showNotification(error.message, 'danger');
+        });
+    }
+}
+
+function editShift(shiftId) {
+    const shiftElement = document.querySelector(`.shift-day[data-shift-id="${shiftId}"]`);
+    if (!shiftElement) return;
+
+    const date = shiftElement.getAttribute('data-date');
+    const workerId = shiftElement.getAttribute('data-worker-id');
+    const rate = shiftElement.getAttribute('data-rate');
+
+    document.getElementById('editShiftId').value = shiftId;
+    document.getElementById('editDate').value = date;
+    document.getElementById('editWorker').value = workerId;
+    document.getElementById('editRate').value = rate;
+
+    const modal = new bootstrap.Modal(document.getElementById('editShiftModal'));
+    modal.show();
+}
+
+function toggleDetailedView() {
+    const detailedShifts = document.getElementById('detailedShifts');
+    const button = event.target.closest('button') || event.target;
+
+    if (detailedShifts.style.display === 'none') {
+        detailedShifts.style.display = 'block';
+        button.innerHTML = '<i class="fas fa-calendar-alt me-1"></i>Календарь';
+    } else {
+        detailedShifts.style.display = 'none';
+        button.innerHTML = '<i class="fas fa-table me-1"></i>Таблица';
+    }
+}
+
+function filterByMonth() {
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    window.location.href = `{{ url_for('pvz_staff') }}?pvz_id={{ selected_pvz.id }}&month=${currentMonth}`;
+}
+
+function showAllData() {
+    window.location.href = `{{ url_for('pvz_staff') }}?pvz_id={{ selected_pvz.id }}`;
+}
+
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+function showNotification(message, type = 'info') {
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show notification`;
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+    document.body.appendChild(alert);
+
+    setTimeout(() => {
+        if (alert.parentElement) {
+            alert.remove();
+        }
+    }, 5000);
+}
+
+// AJAX обработка форм
+document.getElementById('addStaffForm')?.addEventListener('submit', function(e) {
+    showLoading();
+});
+
+document.getElementById('editStaffForm')?.addEventListener('submit', function(e) {
+    showLoading();
+});
+
+document.getElementById('editShiftForm')?.addEventListener('submit', function(e) {
+    showLoading();
+});
+</script>
+</body>
+</html>

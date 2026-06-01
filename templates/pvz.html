@@ -1,0 +1,2363 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ПВЗ — Финансы</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+html, body { overflow-x:hidden; background:#f4f4f9; font-family:Arial, sans-serif; }
+h1{text-align:center; margin-bottom:30px;}
+.card{background:#fff; padding:20px; border-radius:10px; margin-bottom:20px; max-width:100%; box-shadow:0 0 15px rgba(0,0,0,0.05);}
+canvas{background:#fff; padding:10px; border-radius:8px; width:100% !important; max-height:400px; height:auto !important;}
+.styled-table{width:100%; border-collapse:collapse; text-align:center;}
+.nav-buttons { display:flex; gap:10px; margin-bottom:20px; }
+.nav-buttons .btn { flex:1; background:#dbeafe; color:#1e3a8a; font-weight:600; }
+.styled-table th, .styled-table td{padding:10px; border-bottom:1px solid #ddd;}
+.styled-table thead tr{background:#229ED9; color:#fff; text-transform:uppercase;}
+.positive{color:green; font-weight:600;}
+.negative{color:red; font-weight:600;}
+.hide-sm{display: table-cell;}
+@media (max-width:768px){ .hide-sm{display:none;} }
+.btn-sm{margin-right:5px;}
+.toggle-btn{cursor:pointer; color:#229ED9; font-weight:600;}
+.btn-telegram{background-color:#229ED9; color:white; font-weight:600;}
+.btn-telegram:hover{background-color:#1b8fcf;}
+
+/* Стили для графиков */
+.chart-container {
+    position: relative;
+    height: 400px;
+    width: 100%;
+}
+
+.chart-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    overflow: hidden;
+}
+
+.chart-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.chart-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.chart-actions button {
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.chart-actions button:hover {
+    background: #e9ecef;
+}
+
+/* Стили для кликабельных строк таблицы */
+.month-row {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.month-row:hover {
+    background-color: #f8f9fa !important;
+    transform: translateX(5px);
+}
+
+.month-row.selected {
+    background-color: #e3f2fd !important;
+    box-shadow: inset 3px 0 0 #229ED9;
+    position: relative;
+}
+
+.month-row.selected td {
+    font-weight: 600;
+}
+
+.month-row.selected::after {
+    content: '✓';
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #229ED9;
+    font-weight: bold;
+}
+
+/* Кнопка переключения темы */
+.theme-toggle {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: #229ED9;
+    color: white;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    z-index: 1000;
+    transition: all 0.3s ease;
+}
+
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+}
+
+/* Баннер выбранного месяца */
+.selected-month-info {
+    background: linear-gradient(135deg, #229ED9, #1b8fcf);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 20px;
+    display: none;
+    animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Карточки статистики */
+.summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.summary-card {
+    background: white;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    text-align: center;
+    border-left: 4px solid #229ED9;
+}
+
+.summary-card h5 {
+    font-size: 0.9rem;
+    color: #666;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+}
+
+.summary-card .value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.summary-card .trend {
+    font-size: 0.8rem;
+    margin-top: 5px;
+}
+
+.trend.positive { color: #28a745; }
+.trend.negative { color: #dc3545; }
+
+/* Загрузочный экран */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255,255,255,0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .chart-container {
+        height: 300px;
+    }
+
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .month-row.selected::after {
+        display: none;
+    }
+}
+
+/* Темная тема */
+.dark-theme {
+    background: #1a1a1a;
+    color: #e0e0e0;
+}
+
+.dark-theme .card {
+    background: #2d2d2d;
+    color: #e0e0e0;
+    box-shadow: 0 0 15px rgba(255,255,255,0.05);
+}
+
+.dark-theme .summary-card {
+    background: #2d2d2d;
+    color: #e0e0e0;
+}
+
+.dark-theme .summary-card .value {
+    color: #e0e0e0;
+}
+
+.dark-theme .month-row:hover {
+    background-color: #2c3e50 !important;
+}
+
+.dark-theme .month-row.selected {
+    background-color: #34495e !important;
+}
+
+/* Telegram Report Section Styles */
+.bg-telegram-gradient {
+    background: linear-gradient(135deg, #229ED9 0%, #0088cc 100%);
+}
+
+.btn-telegram-light {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+}
+
+.btn-telegram-light:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: white;
+}
+
+.month-selection-panel {
+    max-height: 400px;
+    overflow-y: auto;
+    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+
+.month-select-row {
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.month-select-row:hover {
+    background-color: rgba(34, 158, 217, 0.05) !important;
+}
+
+.month-select-row.current-month-row {
+    background-color: rgba(40, 167, 69, 0.1) !important;
+    border-left: 3px solid #28a745;
+}
+
+.month-select-row.selected-row {
+    background-color: rgba(34, 158, 217, 0.1) !important;
+}
+
+.form-check-input:checked {
+    background-color: #229ED9;
+    border-color: #229ED9;
+}
+
+.form-check-input:focus {
+    box-shadow: 0 0 0 0.25rem rgba(34, 158, 217, 0.25);
+}
+
+.selected-months-tags .badge {
+    font-size: 0.75rem;
+    padding: 0.35em 0.65em;
+    background: #229ED9;
+    animation: fadeInUp 0.3s ease;
+}
+
+.profit-badge {
+    font-size: 0.8rem;
+    padding: 0.25em 0.6em;
+    border-radius: 10px;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.income-value, .expenses-value {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+/* Анимации */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Темная тема */
+.dark-theme .month-selection-panel {
+    background: #2d2d2d;
+    border-bottom-color: #444;
+}
+
+.dark-theme .month-select-row:hover {
+    background-color: rgba(34, 158, 217, 0.1) !important;
+}
+
+.dark-theme .month-select-row.current-month-row {
+    background-color: rgba(40, 167, 69, 0.15) !important;
+    border-left-color: #28a745;
+}
+
+.dark-theme .month-select-row.selected-row {
+    background-color: rgba(34, 158, 217, 0.15) !important;
+}
+
+.dark-theme #monthSelectionTable thead {
+    background: #3d3d3d;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .month-selection-panel {
+        max-height: 300px;
+    }
+
+    #monthSelectionTable {
+        font-size: 0.85rem;
+    }
+
+    #monthSelectionTable th,
+    #monthSelectionTable td {
+        padding: 0.5rem;
+    }
+
+    .selected-months-tags .badge {
+        font-size: 0.7rem;
+        padding: 0.25em 0.5em;
+    }
+}
+
+/* Стили для модального окна деталей */
+#monthDetailsContent .detail-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+#monthDetailsContent .detail-item:last-child {
+    border-bottom: none;
+}
+
+#monthDetailsContent .progress {
+    height: 8px;
+    margin-top: 5px;
+}
+</style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+    </div>
+</div>
+
+<div class="container py-4">
+    <!-- Заголовок и выбор ПВЗ -->
+    <div class="card mb-3">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1 class="mb-0"><i class="fas fa-chart-line me-2"></i>ПВЗ — Финансы</h1>
+                {% if selected_pvz %}
+                <p class="text-muted mb-0 mt-2">
+                    <i class="fas fa-store me-1"></i>{{ selected_pvz.name }}
+                    {% if selected_pvz.address %}
+                    <br><small><i class="fas fa-map-marker-alt me-1"></i>{{ selected_pvz.address }}</small>
+                    {% endif %}
+                </p>
+                {% endif %}
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex gap-2">
+                    <form method="GET" class="d-flex gap-2 flex-grow-1">
+                        <select name="pvz_id" class="form-select" onchange="this.form.submit()">
+                            {% for pvz_item in pvz_list %}
+                            <option value="{{ pvz_item.id }}" {% if pvz_item.id == selected_pvz.id %}selected{% endif %}>
+                                {{ pvz_item.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <a href="{{ url_for('pvz_management') }}" class="btn btn-outline-secondary">
+                            <i class="fas fa-cog"></i>
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Баннер выбранного месяца -->
+    <div id="selectedMonthBanner" class="selected-month-info">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="mb-1">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Выбран месяц: <span id="selectedMonthName"></span>
+                </h4>
+                <div class="row mt-2">
+                    <div class="col-auto">
+                        <span class="badge bg-primary me-2">
+                            <i class="fas fa-money-bill-wave me-1"></i>
+                            Доход: <span id="selectedMonthIncome">0</span> руб.
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-danger me-2">
+                            <i class="fas fa-money-bill me-1"></i>
+                            Расходы: <span id="selectedMonthExpenses">0</span> руб.
+                        </span>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge bg-success">
+                            <i class="fas fa-chart-line me-1"></i>
+                            Прибыль: <span id="selectedMonthProfit">0</span> руб.
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <button type="button" class="btn btn-outline-light btn-sm" id="showAllMonths">
+                    <i class="fas fa-undo me-1"></i>Показать все месяцы
+                </button>
+                <button type="button" class="btn btn-light btn-sm ms-2" onclick="exportSelectedMonth()">
+                    <i class="fas fa-download me-1"></i>Экспорт месяца
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Карточки с суммарной статистикой -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <h5><i class="fas fa-money-bill-wave me-1"></i>Общий доход</h5>
+            <div class="value" id="totalIncome">0 руб.</div>
+            <div class="trend" id="incomeTrend"></div>
+        </div>
+        <div class="summary-card">
+            <h5><i class="fas fa-money-bill me-1"></i>Общие расходы</h5>
+            <div class="value" id="totalExpenses">0 руб.</div>
+            <div class="trend" id="expensesTrend"></div>
+        </div>
+        <div class="summary-card">
+            <h5><i class="fas fa-chart-line me-1"></i>Общая прибыль</h5>
+            <div class="value" id="totalProfit">0 руб.</div>
+            <div class="trend" id="profitTrend"></div>
+        </div>
+        <div class="summary-card">
+            <h5><i class="fas fa-calendar me-1"></i>Период</h5>
+            <div class="value" id="periodCount">0 месяцев</div>
+            <div class="trend" id="periodTrend"></div>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card mb-3">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="year-filter">
+                    <span class="me-2">Фильтр по годам:</span>
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-primary btn-sm active" data-year="all">Все годы</button>
+                        {% set years = [] %}
+                        {% for row in data %}
+                            {% set year = row.month.split('-')[-1] if '-' in row.month else row.month.split('.')[-1] if '.' in row.month else '2024' %}
+                            {% if year not in years %}
+                                {% set _ = years.append(year) %}
+                                <button type="button" class="btn btn-outline-primary btn-sm" data-year="{{ year }}">{{ year }}</button>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                    <button class="btn btn-outline-primary btn-sm" onclick="toggleProfitFilter()">
+                        <i class="fas fa-filter me-1"></i>Только прибыль
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" onclick="showAllData()">
+                        <i class="fas fa-eye me-1"></i>Показать все
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Таблица -->
+    <div class="card mb-3">
+        <div class="table-responsive">
+            <table class="table styled-table" id="financeTable">
+                <thead>
+                    <tr>
+                        <th>Месяц</th>
+                        <th>Аренда</th>
+                        <th>Работники</th>
+                        <th class="hide-sm">Прочие</th>
+                        <th class="hide-sm">Налоги</th>
+                        <th class="hide-sm">Итого расходов</th>
+                        <th>Доход</th>
+                        <th>Прибыль</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    {% for row in data %}
+                    <tr class="month-row"
+                        data-id="{{ row.id }}"
+                        data-month="{{ row.month }}"
+                        data-year="{{ row.month.split('-')[-1] if '-' in row.month else row.month.split('.')[-1] if '.' in row.month else '2024' }}"
+                        data-rent="{{ row.rent or 0 }}"
+                        data-workers="{{ row.workers or 0 }}"
+                        data-other="{{ row.other or 0 }}"
+                        data-income="{{ row.income or 0 }}"
+                        data-taxes="{{ row.taxes or 0 }}"
+                        data-total-expenses="{{ row.total_expenses or 0 }}"
+                        data-profit="{{ row.profit or 0 }}"
+                        {% if row.income_details %}
+                        data-income-details='{{ row.income_details|tojson|safe }}'
+                        {% endif %}>
+                        <td>{{ row.month }}</td>
+                        <td>{{ "{:,.0f}".format(row.rent) if row.rent else '—' }}</td>
+                        <td>{{ "{:,.0f}".format(row.workers) if row.workers else '—' }}</td>
+                        <td class="hide-sm">{{ "{:,.0f}".format(row.other) if row.other else '—' }}</td>
+                        <td class="hide-sm">{{ "{:,.0f}".format(row.taxes) if row.taxes else '—' }}</td>
+                        <td class="hide-sm">{{ "{:,.0f}".format(row.total_expenses) if row.total_expenses else '—' }}</td>
+                        <td>{{ "{:,.0f}".format(row.income) if row.income else '—' }}</td>
+                        <td class="{% if row.profit and row.profit<0 %}negative{% else %}positive{% endif %}">
+                            {{ "{:,.0f}".format(row.profit) if row.profit else '—' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="table-active">
+                        <td><strong>Итого:</strong></td>
+                        <td><strong id="totalRent">0</strong></td>
+                        <td><strong id="totalWorkers">0</strong></td>
+                        <td class="hide-sm"><strong id="totalOther">0</strong></td>
+                        <td class="hide-sm"><strong id="totalTaxes">0</strong></td>
+                        <td class="hide-sm"><strong id="totalAllExpenses">0</strong></td>
+                        <td><strong id="totalAllIncome">0</strong></td>
+                        <td><strong id="totalAllProfit">0</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+
+    <!-- Графики -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card mb-3 chart-card">
+                <div class="chart-header">
+                    <h4 class="mb-0" id="incomeExpenseTitle">Динамика доходов и расходов</h4>
+                    <div class="chart-actions">
+                        <button id="toggleIncomeExpense">Переключить вид</button>
+                        <button id="exportIncomeExpense">Экспорт</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="incomeExpenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3 chart-card">
+                <div class="chart-header">
+                    <h4 class="mb-0" id="pieChartTitle">Структура доходов</h4>
+                    <div class="chart-actions">
+                        <button id="togglePieChart">Переключить вид</button>
+                        <button id="exportPieChart">Экспорт</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="incomePieChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Дополнительные графики -->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="card mb-3 chart-card">
+                <div class="chart-header">
+                    <h4 class="mb-0" id="expenseChartTitle">Структура расходов</h4>
+                    <div class="chart-actions">
+                        <button id="toggleExpenseChart">Переключить вид</button>
+                        <button id="exportExpenseChart">Экспорт</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="expenseChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card mb-3 chart-card">
+                <div class="chart-header">
+                    <h4 class="mb-0" id="profitChartTitle">Динамика прибыли</h4>
+                    <div class="chart-actions">
+                        <button id="toggleProfitChart">Переключить вид</button>
+                        <button id="exportProfitChart">Экспорт</button>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Telegram Report Section -->
+    <div class="card mb-3 shadow-sm" id="telegramReportSection">
+        <div class="card-header bg-telegram-gradient text-white d-flex justify-content-between align-items-center py-3">
+            <h5 class="mb-0">
+                <i class="fab fa-telegram me-2"></i>Отправка отчёта в Telegram
+            </h5>
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-sm btn-telegram-light" onclick="toggleMonthSelection()">
+                    <i class="fas fa-calendar-alt me-1"></i>Выбрать месяцы
+                </button>
+                <button type="button" class="btn btn-sm btn-success" onclick="sendCurrentMonth()">
+                    <i class="fas fa-paper-plane me-1"></i>Текущий месяц
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <!-- Панель выбора месяцев (скрыта по умолчанию) -->
+            <div class="month-selection-panel" id="monthSelectionPanel" style="display: none;">
+                <div class="p-3 border-bottom">
+                    <h6 class="mb-3">
+                        <i class="fas fa-calendar-check me-2"></i>Выберите месяцы для отчёта
+                    </h6>
+
+                    <!-- Быстрые действия -->
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary" onclick="selectAllMonths()">
+                                <i class="fas fa-check-double me-1"></i>Все
+                            </button>
+                            <button type="button" class="btn btn-outline-secondary" onclick="deselectAllMonths()">
+                                <i class="fas fa-ban me-1"></i>Ничего
+                            </button>
+                        </div>
+
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-success" onclick="selectCurrentMonthOnly()">
+                                <i class="fas fa-star me-1"></i>Текущий
+                            </button>
+                            <button type="button" class="btn btn-outline-info" onclick="selectProfitableMonths()">
+                                <i class="fas fa-arrow-up me-1"></i>Прибыльные
+                            </button>
+                            <button type="button" class="btn btn-outline-warning" onclick="selectUnprofitableMonths()">
+                                <i class="fas fa-arrow-down me-1"></i>Убыточные
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Выбранные месяцы -->
+                    <div class="selected-months-container mb-3" id="selectedMonthsContainer" style="display: none;">
+                        <small class="text-muted d-block mb-1">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Выбрано: <span id="selectedCount">0</span> месяцев
+                        </small>
+                        <div class="selected-months-tags d-flex flex-wrap gap-1" id="selectedMonthsTags"></div>
+                    </div>
+                </div>
+
+                <!-- Таблица месяцев -->
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm mb-0" id="monthSelectionTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th width="40" class="text-center">
+                                    <input class="form-check-input" type="checkbox" id="selectAllMonths"
+                                           onclick="toggleAllMonths()">
+                                </th>
+                                <th width="120">Месяц</th>
+                                <th>Доход</th>
+                                <th>Расходы</th>
+                                <th>Прибыль</th>
+                                <th width="80" class="text-center">Детали</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in data %}
+                            <tr class="month-select-row {% if loop.last %}current-month-row{% endif %}"
+                                data-month-id="{{ row.id }}"
+                                data-month="{{ row.month }}"
+                                data-income="{{ row.income or 0 }}"
+                                data-expenses="{{ row.total_expenses or 0 }}"
+                                data-profit="{{ row.profit or 0 }}"
+                                {% if row.income_details %}
+                                data-income-details='{{ row.income_details|tojson|safe }}'
+                                {% endif %}>
+                                <td class="text-center">
+                                    <input class="form-check-input month-checkbox"
+                                           type="checkbox"
+                                           value="{{ row.id }}"
+                                           id="month_{{ row.id }}"
+                                           {% if loop.last %}checked{% endif %}>
+                                </td>
+                                <td>
+                                    <label class="form-check-label cursor-pointer mb-0" for="month_{{ row.id }}">
+                                        <strong class="d-block">{{ row.month }}</strong>
+                                        {% if loop.last %}
+                                        <small class="text-success">
+                                            <i class="fas fa-star me-1"></i>текущий
+                                        </small>
+                                        {% endif %}
+                                    </label>
+                                </td>
+                                <td class="text-end">
+                                    <span class="income-value">{{ "{:,.0f}".format(row.income) if row.income else '—' }}</span> ₽
+                                </td>
+                                <td class="text-end">
+                                    <span class="expenses-value">{{ "{:,.0f}".format(row.total_expenses) if row.total_expenses else '—' }}</span> ₽
+                                </td>
+                                <td class="text-end">
+                                    {% if row.profit %}
+                                    <span class="profit-badge {% if row.profit >= 0 %}badge bg-success{% else %}badge bg-danger{% endif %}">
+                                        {{ "{:,.0f}".format(row.profit) }} ₽
+                                    </span>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-center">
+                                    {% if row.income_details %}
+                                    <button class="btn btn-sm btn-outline-info py-0 px-2"
+                                            onclick="showMonthDetails({{ row.id }})"
+                                            title="Показать детали">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Форма отправки -->
+            <div class="p-3">
+                <div class="row align-items-center">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center">
+                            <div class="me-3">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="includeDetails" checked>
+                                    <label class="form-check-label" for="includeDetails">
+                                        <small>Включить детализацию</small>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div id="sendStatus" class="small text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    <span id="statusText">Будет отправлен отчёт за текущий месяц</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 text-end">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <form method="POST" action="{{ url_for('notify_pvz') }}" id="telegramForm" class="flex-grow-1">
+                                <input type="hidden" name="pvz_id" value="{{ selected_pvz.id }}">
+                                <input type="hidden" name="selected_months" id="selectedMonthsInput" value="">
+                                <input type="hidden" name="include_details" id="includeDetailsInput" value="1">
+                                <button type="submit" class="btn btn-telegram w-100" id="sendReportBtn">
+                                    <i class="fas fa-paper-plane me-2"></i>
+                                    <span id="sendBtnText">Отправить отчёт</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для деталей месяца -->
+    <div class="modal fade" id="monthDetailsModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-chart-pie me-2"></i>
+                        <span id="modalMonthTitle">Детали месяца</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="monthDetailsContent">
+                        <!-- Детали будут загружены здесь -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Действия -->
+    <div class="card mb-3 p-3 shadow-sm">
+        <h4 class="mb-3 d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-tools me-2"></i>Действия</span>
+            <span class="toggle-btn" id="toggleActions">Развернуть</span>
+        </h4>
+        <div id="actionsBlock" style="display:none;">
+            <!-- Добавить месяц -->
+            <div class="card mb-3 p-3 border-primary shadow-sm">
+                <h5 class="mb-3 text-primary"><i class="fas fa-plus-circle me-2"></i>Добавить месяц</h5>
+                <form method="POST" action="{{ url_for('add_pvz_month') }}" class="row g-2 mb-0 align-items-end" id="addMonthForm">
+                    <input type="hidden" name="pvz_id" value="{{ selected_pvz.id }}">
+                    <div class="col-auto">
+                        <input type="text" name="month" class="form-control" placeholder="Месяц (напр: янв.-25)" required>
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="rent" class="form-control" placeholder="Аренда" step="0.01">
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="workers" class="form-control" placeholder="Работники" step="0.01">
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="other" class="form-control" placeholder="Прочие" step="0.01">
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="income" class="form-control" placeholder="Доход" step="0.01">
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Добавить месяц
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Добавить доход по источнику -->
+            <div class="card mb-3 p-3 border-success shadow-sm">
+                <h5 class="mb-3 text-success"><i class="fas fa-money-bill-wave me-2"></i>Добавить доход по источнику</h5>
+                <form method="POST" action="{{ url_for('add_pvz_income') }}" class="row g-2 mb-0 align-items-end" id="addIncomeForm">
+                    <input type="hidden" name="pvz_id" value="{{ selected_pvz.id }}">
+                    <div class="col-auto">
+                        <select name="finance_id" class="form-select" required>
+                            <option value="" disabled selected>Выберите месяц</option>
+                            {% for row in data %}
+                            <option value="{{ row.id }}">{{ row.month }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" name="source" class="form-control" placeholder="Источник" required>
+                    </div>
+                    <div class="col-auto">
+                        <input type="number" name="amount" class="form-control" placeholder="Сумма" step="0.01" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-plus me-1"></i>Добавить доход
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Редактировать / удалить месяц -->
+            <div class="card mb-3 p-3 border-warning shadow-sm">
+                <h5 class="mb-3 text-warning"><i class="fas fa-edit me-2"></i>Редактировать / удалить месяц</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for row in data %}
+                    <div class="d-flex gap-1 align-items-center">
+                        <button class="btn btn-outline-warning btn-sm" data-bs-toggle="modal" data-bs-target="#editMonthModal{{ row.id }}">
+                            <i class="fas fa-edit me-1"></i>{{ row.month }}
+                        </button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteMonth({{ row.id }}, '{{ row.month }}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+
+                    <div class="modal fade" id="editMonthModal{{ row.id }}" tabindex="-1" aria-labelledby="editMonthLabel{{ row.id }}" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <form method="POST" action="{{ url_for('edit_pvz', row_id=row.id) }}" class="edit-month-form">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="editMonthLabel{{ row.id }}">
+                                            <i class="fas fa-edit me-2"></i>Редактировать {{ row.month }}
+                                        </h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-2">
+                                            <label class="form-label">Аренда</label>
+                                            <input type="number" name="rent" class="form-control" value="{{ row.rent or 0 }}" step="0.01">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">Работники</label>
+                                            <input type="number" name="workers" class="form-control" value="{{ row.workers or 0 }}" step="0.01">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">Прочие</label>
+                                            <input type="number" name="other" class="form-control" value="{{ row.other or 0 }}" step="0.01">
+                                        </div>
+                                        <div class="mb-2">
+                                            <label class="form-label">Доход</label>
+                                            <input type="number" name="income" class="form-control" value="{{ row.income or 0 }}" step="0.01">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer d-flex justify-content-between">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                            <i class="fas fa-times me-1"></i>Отмена
+                                        </button>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-save me-1"></i>Сохранить
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Редактировать / удалить доходы -->
+            <div class="card mb-3 p-3 border-info shadow-sm">
+                <h5 class="mb-3 text-info"><i class="fas fa-money-bill-alt me-2"></i>Редактировать / удалить доходы</h5>
+                {% if data %}
+                    {% for row in data %}
+                    {% if row.income_details %}
+                    <h6 class="mt-3 mb-2"><i class="fas fa-calendar me-1"></i>{{ row.month }}</h6>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        {% for inc in row.income_details %}
+                        <div class="d-flex gap-1 align-items-center">
+                            <button class="btn btn-outline-info btn-sm" data-bs-toggle="modal" data-bs-target="#editIncomeModal{{ inc.id }}">
+                                <i class="fas fa-edit me-1"></i>{{ inc.source }} — {{ "{:,.0f}".format(inc.amount) }}
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteIncome({{ inc.id }}, '{{ inc.source }}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+
+                        <div class="modal fade" id="editIncomeModal{{ inc.id }}" tabindex="-1" aria-labelledby="editIncomeLabel{{ inc.id }}" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <form method="POST" action="{{ url_for('edit_pvz_income', income_id=inc.id) }}">
+                                        <div class="modal-header">
+                                            <h5 class="modal-title" id="editIncomeLabel{{ inc.id }}">
+                                                <i class="fas fa-edit me-2"></i>Редактировать {{ inc.source }}
+                                            </h5>
+                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Закрыть"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <div class="mb-2">
+                                                <label class="form-label">Источник</label>
+                                                <input type="text" name="source" class="form-control" value="{{ inc.source }}">
+                                            </div>
+                                            <div class="mb-2">
+                                                <label class="form-label">Сумма</label>
+                                                <input type="number" name="amount" class="form-control" value="{{ inc.amount }}" step="0.01">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                <i class="fas fa-times me-1"></i>Отмена
+                                            </button>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-save me-1"></i>Сохранить
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>Нет данных о доходах по источникам
+                    </div>
+                {% endif %}
+            </div>
+        </div> <!-- actionsBlock -->
+    </div> <!-- card -->
+
+    <!-- Навигационные кнопки -->
+    <div class="d-flex flex-column gap-2 mt-3">
+        <div class="nav-buttons">
+            <a href="{{ url_for('pvz_management') }}" class="btn">
+                <i class="fas fa-store me-2"></i>Управление ПВЗ
+            </a>
+            <a href="{{ url_for('pvz_staff', pvz_id=selected_pvz.id) }}" class="btn">
+                <i class="fas fa-users me-2"></i>Сотрудники
+            </a>
+            <a href="{{ url_for('pvz_management') }}" class="btn">
+                <i class="fas fa-home me-2"></i>Главная
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Кнопка переключения темы -->
+<button class="theme-toggle" id="themeToggle">🌙</button>
+
+<script>
+// Глобальные переменные
+let selectedMonthId = null;
+let selectedMonthData = null;
+let originalChartData = {};
+let incomeExpenseChart = null;
+let pieChart = null;
+let expenseChart = null;
+let profitChart = null;
+let profitOnlyFilter = false;
+let currentMonthId = null;
+let selectedMonthsCount = 0;
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Инициализация
+    initializePage();
+    initializeEventHandlers();
+    initializeCharts();
+    updateTotals();
+    initializeTelegramReport();
+});
+
+function initializePage() {
+    // Toggle блок действий
+    const toggleBtn = document.getElementById('toggleActions');
+    const actionsBlock = document.getElementById('actionsBlock');
+    toggleBtn.addEventListener('click', ()=>{
+        if(actionsBlock.style.display==='none'){
+            actionsBlock.style.display='block';
+            toggleBtn.innerHTML = '<i class="fas fa-chevron-up me-1"></i>Свернуть';
+        } else {
+            actionsBlock.style.display='none';
+            toggleBtn.innerHTML = '<i class="fas fa-chevron-down me-1"></i>Развернуть';
+        }
+    });
+
+    // Переключение темы
+    const themeToggle = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('theme') || 'light';
+
+    if (currentTheme === 'dark') {
+        document.body.classList.add('dark-theme');
+        themeToggle.innerHTML = '☀️';
+    } else {
+        themeToggle.innerHTML = '🌙';
+    }
+
+    themeToggle.addEventListener('click', function() {
+        document.body.classList.toggle('dark-theme');
+        if (document.body.classList.contains('dark-theme')) {
+            localStorage.setItem('theme', 'dark');
+            themeToggle.innerHTML = '☀️';
+        } else {
+            localStorage.setItem('theme', 'light');
+            themeToggle.innerHTML = '🌙';
+        }
+        updateChartsTheme();
+    });
+
+    // Скрываем баннер выбранного месяца при загрузке
+    document.getElementById('selectedMonthBanner').style.display = 'none';
+}
+
+function initializeEventHandlers() {
+    // Обработчики для кнопок фильтрации по годам
+    document.querySelectorAll('.year-filter .btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.year-filter .btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const year = this.dataset.year;
+            filterByYear(year);
+        });
+    });
+
+    // Обработчик для кнопки "Показать все месяцы"
+    document.getElementById('showAllMonths').addEventListener('click', resetMonthSelection);
+
+    // Обработчики для строк таблицы
+    document.querySelectorAll('.month-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Предотвращаем срабатывание на кнопках редактирования/удаления
+            if (e.target.closest('button') || e.target.closest('a')) {
+                return;
+            }
+            handleMonthRowClick(e);
+        });
+    });
+
+    // Обработчики для кнопок графиков
+    document.getElementById('toggleIncomeExpense').addEventListener('click', function() {
+        toggleChartType(incomeExpenseChart);
+    });
+    document.getElementById('togglePieChart').addEventListener('click', function() {
+        if (pieChart) toggleChartType(pieChart);
+    });
+    document.getElementById('toggleExpenseChart').addEventListener('click', function() {
+        if (expenseChart) toggleChartType(expenseChart);
+    });
+    document.getElementById('toggleProfitChart').addEventListener('click', function() {
+        toggleChartType(profitChart);
+    });
+
+    // Обработчики экспорта
+    document.getElementById('exportIncomeExpense').addEventListener('click', function() {
+        exportChart(incomeExpenseChart, 'Доходы-и-расходы');
+    });
+    document.getElementById('exportPieChart').addEventListener('click', function() {
+        if (pieChart) exportChart(pieChart, 'Структура-доходов');
+    });
+    document.getElementById('exportExpenseChart').addEventListener('click', function() {
+        if (expenseChart) exportChart(expenseChart, 'Структура-расходов');
+    });
+    document.getElementById('exportProfitChart').addEventListener('click', function() {
+        exportChart(profitChart, 'Динамика-прибыли');
+    });
+
+    // AJAX обработка форм
+    const addMonthForm = document.getElementById('addMonthForm');
+    if (addMonthForm) {
+        addMonthForm.addEventListener('submit', handleFormSubmit);
+    }
+    const addIncomeForm = document.getElementById('addIncomeForm');
+    if (addIncomeForm) {
+        addIncomeForm.addEventListener('submit', handleFormSubmit);
+    }
+    document.querySelectorAll('.edit-month-form').forEach(form => {
+        form.addEventListener('submit', handleFormSubmit);
+    });
+}
+
+function handleMonthRowClick(event) {
+    const row = event.currentTarget;
+
+    if (!row.dataset.id) {
+        console.error('Нет данных для строки');
+        return;
+    }
+
+    // Убираем выделение у всех строк
+    document.querySelectorAll('.month-row').forEach(r => {
+        r.classList.remove('selected');
+    });
+
+    // Добавляем выделение выбранной строке
+    row.classList.add('selected');
+
+    try {
+        // Получаем данные из data-атрибутов
+        const monthData = {
+            id: row.dataset.id,
+            month: row.dataset.month,
+            rent: parseFloat(row.dataset.rent) || 0,
+            workers: parseFloat(row.dataset.workers) || 0,
+            other: parseFloat(row.dataset.other) || 0,
+            income: parseFloat(row.dataset.income) || 0,
+            taxes: parseFloat(row.dataset.taxes) || 0,
+            totalExpenses: parseFloat(row.dataset.totalExpenses) || 0,
+            profit: parseFloat(row.dataset.profit) || 0,
+            incomeDetails: []
+        };
+
+        // Пытаемся распарсить детализацию доходов
+        const incomeDetailsStr = row.getAttribute('data-income-details');
+        if (incomeDetailsStr && incomeDetailsStr !== 'null' && incomeDetailsStr !== 'undefined') {
+            try {
+                monthData.incomeDetails = JSON.parse(incomeDetailsStr);
+            } catch (e) {
+                console.warn('Не удалось распарсить детализацию доходов:', e);
+                monthData.incomeDetails = [];
+            }
+        }
+
+        // Сохраняем данные
+        selectedMonthId = monthData.id;
+        selectedMonthData = monthData;
+
+        // Обновляем баннер
+        updateMonthBanner(monthData);
+
+        // Обновляем графики
+        updateChartsWithSelectedMonth(monthData);
+
+        // Прокрутка к графикам
+        setTimeout(() => {
+            document.querySelector('.row.mb-3').scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 300);
+
+    } catch (error) {
+        console.error('Ошибка при обработке данных месяца:', error);
+        showNotification('Ошибка при загрузке данных месяца: ' + error.message, 'danger');
+    }
+}
+
+function updateMonthBanner(monthData) {
+    const banner = document.getElementById('selectedMonthBanner');
+    document.getElementById('selectedMonthName').textContent = monthData.month;
+    document.getElementById('selectedMonthIncome').textContent = formatNumber(monthData.income);
+    document.getElementById('selectedMonthExpenses').textContent = formatNumber(monthData.totalExpenses);
+    document.getElementById('selectedMonthProfit').textContent = formatNumber(monthData.profit);
+    banner.style.display = 'block';
+}
+
+function updateChartsWithSelectedMonth(monthData) {
+    if (!monthData) return;
+
+    // Обновляем заголовки
+    document.getElementById('incomeExpenseTitle').textContent = `Доходы и расходы за ${monthData.month}`;
+    document.getElementById('pieChartTitle').textContent = `Структура доходов за ${monthData.month}`;
+    document.getElementById('expenseChartTitle').textContent = `Структура расходов за ${monthData.month}`;
+    document.getElementById('profitChartTitle').textContent = `Прибыль за ${monthData.month}`;
+
+    // 1. График доходов и расходов
+    if (incomeExpenseChart) {
+        incomeExpenseChart.data.labels = [monthData.month];
+        incomeExpenseChart.data.datasets[0].data = [monthData.income];
+        incomeExpenseChart.data.datasets[1].data = [monthData.totalExpenses];
+        incomeExpenseChart.update();
+    }
+
+    // 2. Круговая диаграмма доходов по источникам
+    if (pieChart) {
+        if (monthData.incomeDetails && monthData.incomeDetails.length > 0) {
+            const labels = monthData.incomeDetails.map(i => i.source);
+            const amounts = monthData.incomeDetails.map(i => i.amount);
+
+            pieChart.data.labels = labels;
+            pieChart.data.datasets[0].data = amounts;
+            pieChart.update();
+        } else {
+            // Если нет детализации, показываем просто общий доход
+            pieChart.data.labels = ['Общий доход'];
+            pieChart.data.datasets[0].data = [monthData.income];
+            pieChart.data.datasets[0].backgroundColor = ['#229ED9'];
+            pieChart.update();
+        }
+    }
+
+    // 3. График структуры расходов
+    if (expenseChart) {
+        expenseChart.data.labels = ['Аренда', 'Работники', 'Прочие', 'Налоги'];
+        expenseChart.data.datasets[0].data = [
+            monthData.rent || 0,
+            monthData.workers || 0,
+            monthData.other || 0,
+            monthData.taxes || 0
+        ];
+        expenseChart.update();
+    }
+
+    // 4. График прибыли
+    if (profitChart) {
+        profitChart.data.labels = [monthData.month];
+        profitChart.data.datasets[0].data = [monthData.profit];
+        profitChart.data.datasets[0].backgroundColor = [monthData.profit >= 0 ? '#28a745' : '#dc3545'];
+        profitChart.update();
+    }
+}
+
+function initializeCharts() {
+    const months = {{ data|map(attribute='month')|list|tojson }};
+    const incomes = {{ data|map(attribute='income')|list|tojson }};
+    const expenses = {{ data|map(attribute='total_expenses')|list|tojson }};
+    const profits = {{ data|map(attribute='profit')|list|tojson }};
+
+    // График доходы vs расходы
+    const incomeExpenseCtx = document.getElementById('incomeExpenseChart').getContext('2d');
+    incomeExpenseChart = new Chart(incomeExpenseCtx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Доходы',
+                    data: incomes,
+                    borderColor: '#229ED9',
+                    backgroundColor: 'rgba(34, 158, 217, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true
+                },
+                {
+                    label: 'Расходы',
+                    data: expenses,
+                    borderColor: '#E53935',
+                    backgroundColor: 'rgba(229, 57, 53, 0.1)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true
+                }
+            ]
+        },
+        options: getChartOptions('Доходы и расходы')
+    });
+
+    // Круговая диаграмма доходов по источникам (последний месяц с детализацией)
+    {% if data and data|length > 0 %}
+    try {
+        const lastIncome = {{ data[-1].income_details|tojson }};
+        if (lastIncome && lastIncome.length > 0) {
+            const lastLabels = lastIncome.map(i => i.source);
+            const lastAmounts = lastIncome.map(i => i.amount);
+            const pieCtx = document.getElementById('incomePieChart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: lastLabels,
+                    datasets: [{
+                        data: lastAmounts,
+                        backgroundColor: ['#E53935', '#229ED9', '#6aa84f', '#FF9800', '#9C27B0', '#795548'],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                },
+                options: getPieChartOptions()
+            });
+        } else {
+            // Если нет детализации, создаем пустую диаграмму
+            const pieCtx = document.getElementById('incomePieChart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Нет данных'],
+                    datasets: [{
+                        data: [1],
+                        backgroundColor: ['#cccccc']
+                    }]
+                },
+                options: getPieChartOptions()
+            });
+        }
+    } catch (error) {
+        console.error('Error creating pie chart:', error);
+        // Создаем пустую диаграмму в случае ошибки
+        const pieCtx = document.getElementById('incomePieChart').getContext('2d');
+        pieChart = new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Ошибка загрузки'],
+                datasets: [{
+                    data: [1],
+                    backgroundColor: ['#cccccc']
+                }]
+            },
+            options: getPieChartOptions()
+        });
+    }
+    {% endif %}
+
+    // График структуры расходов (последний месяц)
+    {% if data and data|length > 0 %}
+    try {
+        const lastMonthData = {{ data[-1]|tojson }};
+        const expenseCtx = document.getElementById('expenseChart').getContext('2d');
+        expenseChart = new Chart(expenseCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Аренда', 'Работники', 'Прочие', 'Налоги'],
+                datasets: [{
+                    label: 'Расходы',
+                    data: [
+                        lastMonthData.rent || 0,
+                        lastMonthData.workers || 0,
+                        lastMonthData.other || 0,
+                        lastMonthData.taxes || 0
+                    ],
+                    backgroundColor: ['#FF9800', '#9C27B0', '#4CAF50', '#795548']
+                }]
+            },
+            options: getBarChartOptions('Расходы')
+        });
+    } catch (error) {
+        console.error('Error creating expense chart:', error);
+    }
+    {% endif %}
+
+    // График динамики прибыли
+    const profitCtx = document.getElementById('profitChart').getContext('2d');
+    profitChart = new Chart(profitCtx, {
+        type: 'bar',
+        data: {
+            labels: months,
+            datasets: [{
+                label: 'Прибыль',
+                data: profits,
+                backgroundColor: profits.map(p => p >= 0 ? '#28a745' : '#dc3545')
+            }]
+        },
+        options: getBarChartOptions('Прибыль')
+    });
+
+    // Сохраняем оригинальные данные
+    originalChartData = {
+        incomeExpense: { labels: [...months], incomes: [...incomes], expenses: [...expenses] },
+        profit: { labels: [...months], data: [...profits] }
+    };
+}
+
+function getChartOptions(title) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+                mode: 'index',
+                intersect: false,
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) label += ': ';
+                        label += formatNumber(context.parsed.y) + ' руб.';
+                        return label;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    callback: function(value) {
+                        return formatNumber(value) + ' руб.';
+                    }
+                }
+            }
+        }
+    };
+}
+
+function getPieChartOptions() {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'right' },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.parsed;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = Math.round((value / total) * 100);
+                        return `${label}: ${formatNumber(value)} руб. (${percentage}%)`;
+                    }
+                }
+            }
+        }
+    };
+}
+
+function getBarChartOptions(title) {
+    return {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label || ''}: ${formatNumber(context.parsed.y)} руб.`;
+                    }
+                }
+            }
+        },
+        scales: {
+            y: {
+                ticks: {
+                    callback: function(value) {
+                        return formatNumber(value) + ' руб.';
+                    }
+                }
+            }
+        }
+    };
+}
+
+function updateTotals() {
+    let totalRent = 0;
+    let totalWorkers = 0;
+    let totalOther = 0;
+    let totalTaxes = 0;
+    let totalExpenses = 0;
+    let totalIncome = 0;
+    let totalProfit = 0;
+
+    document.querySelectorAll('.month-row').forEach(row => {
+        if (row.style.display !== 'none') {
+            totalRent += parseFloat(row.dataset.rent) || 0;
+            totalWorkers += parseFloat(row.dataset.workers) || 0;
+            totalOther += parseFloat(row.dataset.other) || 0;
+            totalTaxes += parseFloat(row.dataset.taxes) || 0;
+            totalExpenses += parseFloat(row.dataset.totalExpenses) || 0;
+            totalIncome += parseFloat(row.dataset.income) || 0;
+            totalProfit += parseFloat(row.dataset.profit) || 0;
+        }
+    });
+
+    // Обновляем итоговые значения
+    document.getElementById('totalRent').textContent = formatNumber(totalRent);
+    document.getElementById('totalWorkers').textContent = formatNumber(totalWorkers);
+    document.getElementById('totalOther').textContent = formatNumber(totalOther);
+    document.getElementById('totalTaxes').textContent = formatNumber(totalTaxes);
+    document.getElementById('totalAllExpenses').textContent = formatNumber(totalExpenses);
+    document.getElementById('totalAllIncome').textContent = formatNumber(totalIncome);
+    document.getElementById('totalAllProfit').textContent = formatNumber(totalProfit);
+
+    // Обновляем карточки статистики
+    document.getElementById('totalIncome').textContent = formatCurrency(totalIncome);
+    document.getElementById('totalExpenses').textContent = formatCurrency(totalExpenses);
+    document.getElementById('totalProfit').textContent = formatCurrency(totalProfit);
+    document.getElementById('periodCount').textContent = document.querySelectorAll('.month-row:not([style*="display: none"])').length + ' месяцев';
+}
+
+function formatNumber(num) {
+    return new Intl.NumberFormat('ru-RU').format(Math.round(num));
+}
+
+function formatCurrency(num) {
+    return new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(num) + ' руб.';
+}
+
+function resetMonthSelection() {
+    document.querySelectorAll('.month-row').forEach(r => {
+        r.classList.remove('selected');
+    });
+
+    selectedMonthId = null;
+    selectedMonthData = null;
+
+    // Скрываем баннер
+    document.getElementById('selectedMonthBanner').style.display = 'none';
+
+    // Восстанавливаем исходные графики
+    restoreOriginalCharts();
+    showAllData();
+}
+
+function restoreOriginalCharts() {
+    // Восстанавливаем заголовки
+    document.getElementById('incomeExpenseTitle').textContent = 'Динамика доходов и расходов';
+    document.getElementById('pieChartTitle').textContent = 'Структура доходов';
+    document.getElementById('expenseChartTitle').textContent = 'Структура расходов';
+    document.getElementById('profitChartTitle').textContent = 'Динамика прибыли';
+
+    if (originalChartData.incomeExpense && incomeExpenseChart) {
+        incomeExpenseChart.data.labels = originalChartData.incomeExpense.labels;
+        incomeExpenseChart.data.datasets[0].data = originalChartData.incomeExpense.incomes;
+        incomeExpenseChart.data.datasets[1].data = originalChartData.incomeExpense.expenses;
+        incomeExpenseChart.update();
+    }
+
+    if (originalChartData.profit && profitChart) {
+        profitChart.data.labels = originalChartData.profit.labels;
+        profitChart.data.datasets[0].data = originalChartData.profit.data;
+        profitChart.data.datasets[0].backgroundColor = originalChartData.profit.data.map(p => p >= 0 ? '#28a745' : '#dc3545');
+        profitChart.update();
+    }
+
+    // Восстанавливаем круговую диаграмму (последний месяц)
+    {% if data and data|length > 0 %}
+    try {
+        const lastIncome = {{ data[-1].income_details|tojson }};
+        if (lastIncome && lastIncome.length > 0 && pieChart) {
+            const lastLabels = lastIncome.map(i => i.source);
+            const lastAmounts = lastIncome.map(i => i.amount);
+            pieChart.data.labels = lastLabels;
+            pieChart.data.datasets[0].data = lastAmounts;
+            pieChart.update();
+        } else if (pieChart) {
+            // Если нет детализации
+            pieChart.data.labels = ['Нет данных'];
+            pieChart.data.datasets[0].data = [1];
+            pieChart.data.datasets[0].backgroundColor = ['#cccccc'];
+            pieChart.update();
+        }
+    } catch (error) {
+        console.error('Error restoring pie chart:', error);
+    }
+    {% endif %}
+
+    // Восстанавливаем график расходов
+    {% if data and data|length > 0 %}
+    try {
+        const lastMonthData = {{ data[-1]|tojson }};
+        if (expenseChart) {
+            expenseChart.data.datasets[0].data = [
+                lastMonthData.rent || 0,
+                lastMonthData.workers || 0,
+                lastMonthData.other || 0,
+                lastMonthData.taxes || 0
+            ];
+            expenseChart.update();
+        }
+    } catch (error) {
+        console.error('Error restoring expense chart:', error);
+    }
+    {% endif %}
+}
+
+function filterByYear(year) {
+    const rows = document.querySelectorAll('.month-row');
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+        const rowYear = row.dataset.year;
+        if (year === 'all' || rowYear === year) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+
+    updateTotals();
+    updateChartsForVisibleData();
+}
+
+function toggleProfitFilter() {
+    profitOnlyFilter = !profitOnlyFilter;
+    const rows = document.querySelectorAll('.month-row');
+
+    rows.forEach(row => {
+        const profit = parseFloat(row.dataset.profit) || 0;
+        const isVisible = row.style.display !== 'none';
+
+        if (isVisible) {
+            if (profitOnlyFilter && profit < 0) {
+                row.style.display = 'none';
+            } else if (!profitOnlyFilter) {
+                row.style.display = '';
+            }
+        }
+    });
+
+    updateTotals();
+    updateChartsForVisibleData();
+}
+
+function showAllData() {
+    profitOnlyFilter = false;
+    document.querySelectorAll('.month-row').forEach(row => {
+        row.style.display = '';
+    });
+
+    document.querySelectorAll('.year-filter .btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.year === 'all') {
+            btn.classList.add('active');
+        }
+    });
+
+    updateTotals();
+    restoreOriginalCharts();
+}
+
+function updateChartsForVisibleData() {
+    const visibleRows = document.querySelectorAll('.month-row:not([style*="display: none"])');
+
+    if (visibleRows.length === 0) return;
+
+    const months = [];
+    const incomes = [];
+    const expenses = [];
+    const profits = [];
+
+    visibleRows.forEach(row => {
+        months.push(row.dataset.month);
+        incomes.push(parseFloat(row.dataset.income) || 0);
+        expenses.push(parseFloat(row.dataset.totalExpenses) || 0);
+        profits.push(parseFloat(row.dataset.profit) || 0);
+    });
+
+    if (incomeExpenseChart) {
+        incomeExpenseChart.data.labels = months;
+        incomeExpenseChart.data.datasets[0].data = incomes;
+        incomeExpenseChart.data.datasets[1].data = expenses;
+        incomeExpenseChart.update();
+    }
+
+    if (profitChart) {
+        profitChart.data.labels = months;
+        profitChart.data.datasets[0].data = profits;
+        profitChart.data.datasets[0].backgroundColor = profits.map(p => p >= 0 ? '#28a745' : '#dc3545');
+        profitChart.update();
+    }
+}
+
+function toggleChartType(chart) {
+    if (!chart) return;
+
+    const currentType = chart.config.type;
+    const newType = currentType === 'line' ? 'bar' :
+                   currentType === 'bar' ? 'line' :
+                   currentType === 'doughnut' ? 'pie' : 'doughnut';
+
+    chart.config.type = newType;
+    chart.update();
+}
+
+function exportChart(chart, name) {
+    if (!chart) return;
+
+    const link = document.createElement('a');
+    link.download = `${name}_${selected_pvz.name.replace(/\s+/g, '_')}_${new Date().toLocaleDateString('ru-RU').replace(/\./g, '-')}.png`;
+    link.href = chart.toBase64Image();
+    link.click();
+}
+
+function exportSelectedMonth() {
+    if (!selectedMonthData) {
+        showNotification('Сначала выберите месяц', 'warning');
+        return;
+    }
+
+    const data = selectedMonthData;
+    let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+
+    csvContent += `Отчет по ПВЗ: ${selected_pvz.name}\n`;
+    csvContent += `Месяц: ${data.month}\n\n`;
+    csvContent += "Категория;Сумма (руб.)\n";
+    csvContent += `Аренда;${data.rent || 0}\n`;
+    csvContent += `Зарплаты;${data.workers || 0}\n`;
+    csvContent += `Прочие расходы;${data.other || 0}\n`;
+    csvContent += `Налоги;${data.taxes || 0}\n`;
+    csvContent += `Всего расходов;${data.totalExpenses || 0}\n`;
+    csvContent += `Общий доход;${data.income || 0}\n`;
+    csvContent += `Прибыль;${data.profit || 0}\n\n`;
+
+    if (data.incomeDetails && data.incomeDetails.length > 0) {
+        csvContent += "Детализация доходов\n";
+        csvContent += "Источник;Сумма (руб.)\n";
+        data.incomeDetails.forEach(inc => {
+            csvContent += `${inc.source};${inc.amount}\n`;
+        });
+    }
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `ПВЗ_${selected_pvz.name.replace(/\s+/g, '_')}_${data.month}_отчет.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function showNotification(message, type = 'info') {
+    const alert = document.createElement('div');
+    alert.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    alert.style.cssText = 'top: 20px; right: 20px; z-index: 1050; min-width: 300px;';
+    alert.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    document.body.appendChild(alert);
+
+    setTimeout(() => {
+        alert.remove();
+    }, 3000);
+}
+
+function handleFormSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+
+    showLoading();
+
+    fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form)
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            throw new Error('Ошибка при сохранении данных');
+        }
+    })
+    .catch(error => {
+        hideLoading();
+        showNotification(error.message, 'danger');
+    });
+}
+
+function deleteMonth(id, name) {
+    if (confirm(`Вы уверены, что хотите удалить месяц "${name}"?`)) {
+        showLoading();
+        fetch(`/pvz/delete/${id}`, { method: 'POST' })
+            .then(() => window.location.reload())
+            .catch(error => {
+                hideLoading();
+                showNotification('Ошибка при удалении месяца', 'danger');
+            });
+    }
+}
+
+function deleteIncome(id, source) {
+    if (confirm(`Вы уверены, что хотите удалить доход "${source}"?`)) {
+        showLoading();
+        fetch(`/pvz/income/delete/${id}`, { method: 'POST' })
+            .then(() => window.location.reload())
+            .catch(error => {
+                hideLoading();
+                showNotification('Ошибка при удалении дохода', 'danger');
+            });
+    }
+}
+
+function updateChartsTheme() {
+    const charts = [incomeExpenseChart, pieChart, expenseChart, profitChart];
+    charts.forEach(chart => {
+        if (chart) chart.update();
+    });
+}
+
+function showLoading() {
+    document.getElementById('loadingOverlay').style.display = 'flex';
+}
+
+function hideLoading() {
+    document.getElementById('loadingOverlay').style.display = 'none';
+}
+
+// ========== Telegram Report Functions ==========
+
+function initializeTelegramReport() {
+    // Находим последний месяц в таблице (используем loop.last из шаблона)
+    const monthRows = document.querySelectorAll('.month-select-row');
+    const lastMonthRow = Array.from(monthRows).find(row => row.classList.contains('current-month-row'));
+
+    if (lastMonthRow) {
+        currentMonthId = lastMonthRow.dataset.monthId;
+
+        // Устанавливаем его выбранным по умолчанию
+        const currentCheckbox = document.querySelector(`#month_${currentMonthId}`);
+        if (currentCheckbox) {
+            currentCheckbox.checked = true;
+            currentCheckbox.dispatchEvent(new Event('change'));
+        }
+    }
+
+    // Инициализируем обработчики событий
+    initMonthSelectionHandlers();
+
+    // Инициализируем состояние отправки
+    updateSendStatus();
+
+    // Инициализируем чекбокс детализации
+    const includeDetailsCheckbox = document.getElementById('includeDetails');
+    const includeDetailsInput = document.getElementById('includeDetailsInput');
+    if (includeDetailsCheckbox) {
+        includeDetailsCheckbox.addEventListener('change', function() {
+            includeDetailsInput.value = this.checked ? '1' : '0';
+        });
+        includeDetailsInput.value = includeDetailsCheckbox.checked ? '1' : '0';
+    }
+
+    // Скрываем панель выбора при загрузке
+    document.getElementById('monthSelectionPanel').style.display = 'none';
+
+    // Инициализируем выбор
+    updateSelectedMonths();
+}
+
+function initMonthSelectionHandlers() {
+    // Обработчик изменения чекбоксов
+    document.querySelectorAll('.month-checkbox').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const row = this.closest('.month-select-row');
+
+            if (this.checked) {
+                row.classList.add('selected-row');
+            } else {
+                row.classList.remove('selected-row');
+            }
+
+            updateSelectedMonths();
+            updateSelectAllCheckbox();
+            updateSendStatus();
+        });
+    });
+
+    // Клик по строке (кроме чекбокса)
+    document.querySelectorAll('.month-select-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Игнорируем клик по чекбоксу и кнопкам
+            if (e.target.type === 'checkbox' ||
+                e.target.closest('button') ||
+                e.target.closest('.form-check')) {
+                return;
+            }
+
+            const checkbox = this.querySelector('.month-checkbox');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+            }
+        });
+    });
+}
+
+function toggleMonthSelection() {
+    const panel = document.getElementById('monthSelectionPanel');
+    const button = document.querySelector('[onclick="toggleMonthSelection()"] i');
+
+    if (panel.style.display === 'none') {
+        panel.style.display = 'block';
+        button.className = 'fas fa-calendar-times me-1';
+    } else {
+        panel.style.display = 'none';
+        button.className = 'fas fa-calendar-alt me-1';
+    }
+}
+
+function selectAllMonths() {
+    document.querySelectorAll('.month-checkbox').forEach(checkbox => {
+        checkbox.checked = true;
+        const row = checkbox.closest('.month-select-row');
+        row.classList.add('selected-row');
+        checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
+function deselectAllMonths() {
+    document.querySelectorAll('.month-checkbox').forEach(checkbox => {
+        checkbox.checked = false;
+        const row = checkbox.closest('.month-select-row');
+        row.classList.remove('selected-row');
+        checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
+function selectCurrentMonthOnly() {
+    deselectAllMonths();
+
+    if (currentMonthId) {
+        const checkbox = document.querySelector(`#month_${currentMonthId}`);
+        if (checkbox) {
+            checkbox.checked = true;
+            const row = checkbox.closest('.month-select-row');
+            row.classList.add('selected-row');
+            checkbox.dispatchEvent(new Event('change'));
+        }
+    }
+}
+
+function selectProfitableMonths() {
+    document.querySelectorAll('.month-select-row').forEach(row => {
+        const checkbox = row.querySelector('.month-checkbox');
+        const profitBadge = row.querySelector('.profit-badge');
+
+        if (checkbox && profitBadge && profitBadge.classList.contains('bg-success')) {
+            checkbox.checked = true;
+            row.classList.add('selected-row');
+        } else if (checkbox) {
+            checkbox.checked = false;
+            row.classList.remove('selected-row');
+        }
+        if (checkbox) checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
+function selectUnprofitableMonths() {
+    document.querySelectorAll('.month-select-row').forEach(row => {
+        const checkbox = row.querySelector('.month-checkbox');
+        const profitBadge = row.querySelector('.profit-badge');
+
+        if (checkbox && profitBadge && profitBadge.classList.contains('bg-danger')) {
+            checkbox.checked = true;
+            row.classList.add('selected-row');
+        } else if (checkbox) {
+            checkbox.checked = false;
+            row.classList.remove('selected-row');
+        }
+        if (checkbox) checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
+function toggleAllMonths() {
+    const selectAllCheckbox = document.getElementById('selectAllMonths');
+    const allChecked = selectAllCheckbox.checked;
+
+    document.querySelectorAll('.month-checkbox').forEach(checkbox => {
+        checkbox.checked = allChecked;
+        const row = checkbox.closest('.month-select-row');
+        if (allChecked) {
+            row.classList.add('selected-row');
+        } else {
+            row.classList.remove('selected-row');
+        }
+        checkbox.dispatchEvent(new Event('change'));
+    });
+}
+
+function updateSelectAllCheckbox() {
+    const checkboxes = document.querySelectorAll('.month-checkbox');
+    const selectAllCheckbox = document.getElementById('selectAllMonths');
+
+    if (checkboxes.length === 0) return;
+
+    const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+    const anyChecked = Array.from(checkboxes).some(cb => cb.checked);
+
+    selectAllCheckbox.checked = allChecked;
+    selectAllCheckbox.indeterminate = !allChecked && anyChecked;
+}
+
+function updateSelectedMonths() {
+    const selectedMonths = [];
+    const selectedMonthsNames = [];
+
+    document.querySelectorAll('.month-checkbox:checked').forEach(checkbox => {
+        const monthId = checkbox.value;
+        const row = checkbox.closest('.month-select-row');
+        const monthName = row?.dataset.month || `ID: ${monthId}`;
+
+        selectedMonths.push(monthId);
+        selectedMonthsNames.push(monthName);
+    });
+
+    // Обновляем скрытое поле формы
+    document.getElementById('selectedMonthsInput').value = selectedMonths.join(',');
+
+    // Обновляем счетчик
+    selectedMonthsCount = selectedMonths.length;
+    document.getElementById('selectedCount').textContent = selectedMonthsCount;
+
+    // Обновляем теги выбранных месяцев
+    const tagsContainer = document.getElementById('selectedMonthsTags');
+    const container = document.getElementById('selectedMonthsContainer');
+
+    if (selectedMonthsCount > 0) {
+        container.style.display = 'block';
+        tagsContainer.innerHTML = '';
+
+        selectedMonthsNames.forEach(name => {
+            const tag = document.createElement('span');
+            tag.className = 'badge bg-primary';
+            tag.textContent = name;
+            tagsContainer.appendChild(tag);
+        });
+    } else {
+        container.style.display = 'none';
+        tagsContainer.innerHTML = '';
+    }
+
+    // Обновляем текст кнопки отправки
+    const sendBtnText = document.getElementById('sendBtnText');
+    if (selectedMonthsCount === 0) {
+        sendBtnText.textContent = 'Выберите месяцы';
+    } else if (selectedMonthsCount === 1) {
+        sendBtnText.textContent = 'Отправить 1 месяц';
+    } else {
+        sendBtnText.textContent = `Отправить ${selectedMonthsCount} месяцев`;
+    }
+}
+
+function updateSendStatus() {
+    const statusText = document.getElementById('statusText');
+    const selectedCount = document.querySelectorAll('.month-checkbox:checked').length;
+
+    if (selectedCount === 0) {
+        statusText.textContent = 'Выберите месяцы для отправки отчёта';
+        statusText.className = 'text-warning';
+    } else if (selectedCount === 1) {
+        const selectedRow = document.querySelector('.month-checkbox:checked').closest('.month-select-row');
+        const monthName = selectedRow?.dataset.month || 'выбранный месяц';
+        statusText.textContent = `Будет отправлен отчёт за ${monthName}`;
+        statusText.className = 'text-success';
+    } else {
+        statusText.textContent = `Будет отправлен отчёт за ${selectedCount} месяцев`;
+        statusText.className = 'text-success';
+    }
+}
+
+function showMonthDetails(monthId) {
+    const row = document.querySelector(`[data-month-id="${monthId}"]`);
+    if (!row) return;
+
+    const monthName = row.dataset.month;
+    const income = parseFloat(row.dataset.income) || 0;
+    const expenses = parseFloat(row.dataset.expenses) || 0;
+    const profit = parseFloat(row.dataset.profit) || 0;
+
+    // Получаем детали доходов из data-атрибута
+    let incomeDetails = [];
+    const detailsJson = row.getAttribute('data-income-details');
+    if (detailsJson && detailsJson !== 'null' && detailsJson !== 'undefined') {
+        try {
+            incomeDetails = JSON.parse(detailsJson);
+        } catch (e) {
+            console.error('Error parsing income details:', e);
+        }
+    }
+
+    // Формируем HTML для модального окна
+    let detailsHTML = `
+        <h6 class="mb-3">${monthName}</h6>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card border-success border-2">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title text-success mb-1">Доход</h5>
+                        <h4 class="mb-0">${formatCurrency(income)}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-danger border-2">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title text-danger mb-1">Расходы</h5>
+                        <h4 class="mb-0">${formatCurrency(expenses)}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card border-${profit >= 0 ? 'success' : 'danger'} border-2">
+                    <div class="card-body text-center py-3">
+                        <h5 class="card-title text-${profit >= 0 ? 'success' : 'danger'} mb-1">Прибыль</h5>
+                        <h4 class="mb-0">${formatCurrency(profit)}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (incomeDetails.length > 0) {
+        detailsHTML += `
+            <h6 class="mb-3">
+                <i class="fas fa-money-bill-wave me-2"></i>Детализация доходов
+            </h6>
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>Источник</th>
+                            <th width="150" class="text-end">Сумма</th>
+                            <th width="100" class="text-end">Доля</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        incomeDetails.forEach(detail => {
+            const percentage = income > 0 ? (detail.amount / income * 100) : 0;
+            detailsHTML += `
+                <tr>
+                    <td>${detail.source}</td>
+                    <td class="text-end">${formatCurrency(detail.amount)}</td>
+                    <td class="text-end">
+                        <span class="badge bg-info">${percentage.toFixed(1)}%</span>
+                    </td>
+                </tr>
+            `;
+        });
+
+        detailsHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    } else {
+        detailsHTML += `
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i>
+                Нет детализации доходов для этого месяца
+            </div>
+        `;
+    }
+
+    // Обновляем модальное окно
+    document.getElementById('modalMonthTitle').textContent = `Детали за ${monthName}`;
+    document.getElementById('monthDetailsContent').innerHTML = detailsHTML;
+
+    // Показываем модальное окно
+    const modal = new bootstrap.Modal(document.getElementById('monthDetailsModal'));
+    modal.show();
+}
+
+function sendCurrentMonth() {
+    if (!currentMonthId) {
+        showNotification('Текущий месяц не найден', 'warning');
+        return;
+    }
+
+    // Выбираем только текущий месяц
+    selectCurrentMonthOnly();
+
+    // Показываем анимацию
+    const sendBtn = document.querySelector('[onclick="sendCurrentMonth()"]');
+    const originalText = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Отправка...';
+    sendBtn.disabled = true;
+
+    // Отправляем форму
+    const form = document.getElementById('telegramForm');
+    const formData = new FormData(form);
+
+    showLoading();
+
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Ошибка при отправке отчёта');
+        }
+        return response.text();
+    })
+    .then(() => {
+        hideLoading();
+        showNotification('✅ Отчёт за текущий месяц отправлен в Telegram!', 'success');
+
+        // Восстанавливаем кнопку
+        setTimeout(() => {
+            sendBtn.innerHTML = originalText;
+            sendBtn.disabled = false;
+        }, 2000);
+    })
+    .catch(error => {
+        hideLoading();
+        showNotification('❌ Ошибка: ' + error.message, 'danger');
+
+        // Восстанавливаем кнопку
+        sendBtn.innerHTML = originalText;
+        sendBtn.disabled = false;
+    });
+}
+
+// Обработчик формы отправки
+document.getElementById('telegramForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const form = e.target;
+    const formData = new FormData(form);
+    const selectedMonths = formData.get('selected_months');
+
+    // Если ничего не выбрано, выбираем текущий месяц
+    if (!selectedMonths || selectedMonths.trim() === '') {
+        if (currentMonthId) {
+            formData.set('selected_months', currentMonthId);
+        } else {
+            showNotification('Выберите хотя бы один месяц для отправки', 'warning');
+            return;
+        }
+    }
+
+    // Показываем анимацию отправки
+    const sendBtn = document.getElementById('sendReportBtn');
+    const originalText = sendBtn.innerHTML;
+    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Отправка...';
+    sendBtn.disabled = true;
+
+    showLoading();
+
+    // Отправляем запрос
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Ошибка при отправке отчёта');
+        }
+        return response.text();
+    })
+    .then(() => {
+        hideLoading();
+        showNotification('✅ Отчёт успешно отправлен в Telegram!', 'success');
+
+        // Анимация успеха
+        sendBtn.innerHTML = '<i class="fas fa-check me-2"></i>Отправлено!';
+        sendBtn.classList.remove('btn-telegram');
+        sendBtn.classList.add('btn-success');
+
+        // Восстанавливаем через 3 секунды
+        setTimeout(() => {
+            sendBtn.innerHTML = originalText;
+            sendBtn.classList.remove('btn-success');
+            sendBtn.classList.add('btn-telegram');
+            sendBtn.disabled = false;
+        }, 3000);
+    })
+    .catch(error => {
+        hideLoading();
+        showNotification('❌ Ошибка при отправке: ' + error.message, 'danger');
+
+        // Восстанавливаем кнопку
+        sendBtn.innerHTML = originalText;
+        sendBtn.disabled = false;
+    });
+});
+
+// Функция форматирования валюты
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('ru-RU', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(amount) + ' ₽';
+}
+</script>
+</body>
+</html>

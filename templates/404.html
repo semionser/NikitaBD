@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Доступ запрещён</title>
+
+<style>
+html, body {
+  margin: 0;
+  height: 100%;
+  background: #fff;
+  font-family: Arial, sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.container {
+  display: block; /* чтобы <a> вел себя как контейнер */
+  background: #000;
+  padding: 50px 40px;
+  border-radius: 20px;
+  text-align: center;
+  color: white;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  min-width: 400px;
+  text-decoration: none; /* убираем подчеркивание */
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.container:hover {
+  transform: scale(1.05);
+  box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+}
+
+/* Глаза */
+.face {
+  position: relative;
+  width: 200px;
+  height: 100px;
+  margin: 0 auto 40px;
+  animation: shake 0.2s infinite;
+}
+
+.eye {
+  position: absolute;
+  width: 75px;
+  height: 75px;
+  background: white;
+  border-radius: 50%;
+  overflow: hidden;
+}
+
+.eye::before {
+  content: '';
+  position: absolute;
+  width: 25px;
+  height: 25px;
+  background: black;
+  border-radius: 50%;
+  top: 25px;
+  left: 25px;
+  animation: eye-move 2.5s infinite;
+}
+
+.eye.left { left: 0; }
+.eye.right { right: 0; }
+
+@keyframes eye-move {
+  0%,30%,55%,90%,100% { transform: translate(0,0); }
+  10%,25% { transform: translate(0,10px); }
+  65% { transform: translate(-10px,0); }
+  80% { transform: translate(10px,0); }
+}
+
+@keyframes shake {
+  0% { transform: translate(1px, 0); }
+  50% { transform: translate(0, 0); }
+  100% { transform: translate(-1px, 0); }
+}
+
+h1 {
+  font-size: 80px;
+  margin: 0 0 20px 0;
+}
+
+p {
+  font-size: 24px;
+  color: #1EA7AB;
+  white-space: nowrap;
+  overflow: hidden;
+  border-right: 2px solid #1EA7AB;
+  padding-right: 5px;
+  min-width: 350px;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<a  class="container">
+  <div class="face">
+    <div class="eye left"></div>
+    <div class="eye right"></div>
+  </div>
+
+  <h1>404</h1>
+  <p id="animated-text"></p>
+</a>
+
+<script>
+const texts = [
+  "Потерялся? Как...",
+  "Почему это произошло?",
+  "Ахх... Черт...",
+  "Почини!!!"
+];
+
+let i = 0;
+let j = 0;
+let currentText = '';
+const speed = 100;
+const pause = 1500;
+
+function typeText() {
+  if (j < texts[i].length) {
+    currentText += texts[i][j];
+    document.getElementById('animated-text').textContent = currentText;
+    j++;
+    setTimeout(typeText, speed);
+  } else {
+    setTimeout(() => {
+      currentText = '';
+      j = 0;
+      i = (i + 1) % texts.length;
+      typeText();
+    }, pause);
+  }
+}
+
+typeText();
+</script>
+
+</body>
+</html>

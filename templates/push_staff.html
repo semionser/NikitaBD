@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ПВЗ — Подтверждение работы</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+html, body {
+  height: 100%;
+  background: linear-gradient(135deg, #f4f4f9 0%, #e9ecf2 100%);
+  font-family:'Segoe UI',Arial,sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+.container {
+  max-width: 700px;
+  width: 90%;
+}
+.card {
+  background:#fff;
+  border-radius:20px;
+  padding:40px 35px;
+  box-shadow:0 8px 25px rgba(0,0,0,0.12);
+  text-align:center;
+  transition: all 0.3s ease;
+}
+h2 {
+  font-weight:700;
+  margin-bottom:25px;
+  color:#222;
+}
+.time-display {
+  font-size:1.4rem;
+  color:#333;
+  margin-bottom:25px;
+}
+.btn-success {
+  background:linear-gradient(90deg,#2ecc71,#27ae60);
+  border:none;
+  font-size:1.1rem;
+  padding:12px;
+  transition:transform 0.15s ease,background 0.3s;
+}
+.btn-success:hover {
+  transform:scale(1.05);
+  background:linear-gradient(90deg,#34d67a,#2ecc71);
+}
+.staff-btn { margin-top:18px; }
+footer {
+  margin-top:25px;
+  text-align:center;
+  font-size:0.9rem;
+  color:#777;
+}
+#dateDisplay {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+/* ✅ Сообщение после отметки */
+.success-message {
+  display: none;
+  color: #2e7d32;
+  font-size: 1rem;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+.success-message.show {
+  display: block;
+  opacity: 1;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>🙋‍♂️ Подтверждение работы</h2>
+    <p id="dateDisplay"></p>
+    <p class="time-display">🕒 Московское время: <b id="moscowTime">{{ time_str }}</b></p>
+
+    {% for staff in staff_list %}
+    <form method="POST" class="staff-btn">
+      <input type="hidden" name="staff_id" value="{{ staff.id }}">
+      <button type="submit" class="btn btn-success w-100">
+         Начать работу: {{ staff.name }}
+      </button>
+      <p class="success-message">✅ Вы отметились!</p>
+    </form>
+    {% endfor %}
+  </div>
+
+   <!-- уведы тут  -->
+</div>
+
+<script>
+// 🕒 Обновление московского времени
+function updateMoscowTime() {
+  const now = new Date();
+  const options = { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+  document.getElementById('moscowTime').textContent = now.toLocaleTimeString('ru-RU', options);
+}
+setInterval(updateMoscowTime, 1000);
+updateMoscowTime();
+
+// 📅 Обновление даты
+function updateDate() {
+  const now = new Date();
+  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+  document.getElementById('dateDisplay').textContent =
+    now.toLocaleDateString('ru-RU', options).replace(/^./, c => c.toUpperCase());
+}
+updateDate();
+
+// ✅ Плавная индикация отметки + возврат оригинальной кнопки через 30 сек
+document.querySelectorAll('form.staff-btn').forEach(form => {
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const button = form.querySelector('button');
+    const message = form.querySelector('.success-message');
+    const originalText = button.textContent; // сохраняем исходный текст
+    const formData = new FormData(form);
+
+    button.disabled = true;
+    button.textContent = "⏳ Отправка...";
+
+    // Отправляем POST-запрос
+    const response = await fetch(form.action || window.location.href, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (response.ok) {
+      button.style.display = "none";
+      message.classList.add('show');
+
+      // ⏱ Через 30 секунд вернуть всё как было
+      setTimeout(() => {
+        message.classList.remove('show');
+        button.style.display = "inline-block";
+        button.disabled = false;
+        button.textContent = originalText; // вернуть исходную надпись
+      }, 30000);
+
+    } else {
+      button.disabled = false;
+      button.textContent = originalText;
+      alert("Ошибка при отметке. Попробуйте снова.");
+    }
+  });
+});
+</script>
+</body>
+</html>
