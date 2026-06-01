@@ -51,6 +51,7 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)  # <== вот это новое
 
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 
@@ -1490,4 +1491,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     Thread(target=run_bot).start()
-    app.run( debug=False)
+    app.run( debug=True)
