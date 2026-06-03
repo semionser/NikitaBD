@@ -581,30 +581,67 @@ canvas{background:#fff; padding:10px; border-radius:8px; width:100% !important; 
         </div>
 
         <!-- Календарь -->
-        <div class="shift-calendar" id="shiftCalendar">
-            {% for sh in shifts %}
-            {% set is_today = sh.date.strftime('%d.%m.%Y') == today %}
-            <div class="shift-day {% if is_today %}today{% endif %}"
-                 style="background-color: {{ worker_colors.get(sh.worker_id, '#ffffff') }};"
-                 data-shift-id="{{ sh.id }}"
-                 data-date="{{ sh.date.strftime('%d.%m.%Y') }}"
-                 data-worker-id="{{ sh.worker_id }}"
-                 data-worker-name="{{ sh.worker.name }}"
-                 data-rate="{{ sh.rate }}"
-                 data-checkin-time="{{ sh.checkin_time.strftime('%H:%M') if sh.checkin_time else '' }}"
-                 onclick="editShift({{ sh.id }})">
-                <div class="day-number">{{ sh.date.strftime('%d') }}</div>
-                <div class="worker-name">{{ sh.worker.name.split(' ')[0] }}</div>
-                {% if sh.checkin_time %}
-                    {% set checkin_time_str = sh.checkin_time.strftime('%H:%M') %}
-                    <div class="checkin-time {% if checkin_time_str > '09:06' %}late{% endif %}">
-                        {{ checkin_time_str }}
-                        {% if checkin_time_str > '09:06' %} ⚠️{% endif %}
-                    </div>
-                {% endif %}
+
+        {% set ns = namespace(current_month='') %}
+
+<div id="shiftCalendar">
+
+{% for sh in shifts %}
+
+    {% set month_key = sh.date.strftime('%Y-%m') %}
+    {% set month_label = sh.date.strftime('%B %Y') %}
+
+    {% if month_key != ns.current_month %}
+
+        {% if not loop.first %}
             </div>
-            {% endfor %}
         </div>
+        {% endif %}
+
+        <div class="card mb-3 mt-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <h5 class="mb-0">
+                    <i class="fas fa-calendar me-2"></i>{{ month_label }}
+                </h5>
+            </div>
+
+            <div class="shift-calendar">
+
+        {% set ns.current_month = month_key %}
+    {% endif %}
+
+    {% set is_today = sh.date.strftime('%d.%m.%Y') == today %}
+
+    <div class="shift-day {% if is_today %}today{% endif %}"
+         style="background-color: {{ worker_colors.get(sh.worker_id, '#ffffff') }};"
+         data-shift-id="{{ sh.id }}"
+         data-date="{{ sh.date.strftime('%d.%m.%Y') }}"
+         data-worker-id="{{ sh.worker_id }}"
+         data-worker-name="{{ sh.worker.name }}"
+         data-rate="{{ sh.rate }}"
+         data-checkin-time="{{ sh.checkin_time.strftime('%H:%M') if sh.checkin_time else '' }}"
+         onclick="editShift({{ sh.id }})">
+
+        <div class="day-number">{{ sh.date.strftime('%d') }}</div>
+        <div class="worker-name">{{ sh.worker.name.split(' ')[0] }}</div>
+
+        {% if sh.checkin_time %}
+            {% set checkin_time_str = sh.checkin_time.strftime('%H:%M') %}
+            <div class="checkin-time {% if checkin_time_str > '09:06' %}late{% endif %}">
+                {{ checkin_time_str }}
+                {% if checkin_time_str > '09:06' %} ⚠️{% endif %}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if loop.last %}
+            </div>
+        </div>
+    {% endif %}
+
+{% endfor %}
+
+</div>
 
         <!-- Детальная таблица -->
         <div id="detailedShifts" style="display: none; margin-top: 20px;">
@@ -644,30 +681,41 @@ canvas{background:#fff; padding:10px; border-radius:8px; width:100% !important; 
         </div>
     </div>
 
-    <!-- Фильтры -->
-    <div class="filter-section">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <div class="filter-actions">
-                    <button class="btn btn-outline-primary btn-sm" onclick="filterByMonth()">
-                        <i class="fas fa-filter me-1"></i>Текущий месяц
-                    </button>
-                    <button class="btn btn-outline-info btn-sm" onclick="showAllData()">
-                        <i class="fas fa-eye me-1"></i>Показать все
-                    </button>
-                </div>
+<div class="filter-section">
+    <div class="row align-items-center">
+
+        <!-- Режимы -->
+        <div class="col-md-8">
+            <div class="filter-actions">
+
+                <button type="button"
+                        class="btn btn-outline-primary btn-sm"
+                        onclick="setMode('1')">
+                    <i class="fas fa-calendar me-1"></i>1 месяц
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-primary btn-sm"
+                        onclick="setMode('3')">
+                    <i class="fas fa-calendar me-1"></i>3 месяца
+                </button>
+
+                <button type="button"
+                        class="btn btn-outline-primary btn-sm"
+                        onclick="setMode('6')">
+                    <i class="fas fa-calendar me-1"></i>6 месяцев
+                </button>
+
+
+
             </div>
-            <div class="col-md-4 text-end">
-                <form method="GET" class="d-flex gap-2">
-                    <input type="month" name="month" class="form-control" value="{{ request.args.get('month', '') }}"
-                           onchange="this.form.submit()">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </form>
-            </div>
+
+
         </div>
+
     </div>
+</div>
+
 
     <!-- Навигационные кнопки -->
     <div class="nav-buttons">
@@ -1047,6 +1095,47 @@ document.getElementById('editStaffForm')?.addEventListener('submit', function(e)
 document.getElementById('editShiftForm')?.addEventListener('submit', function(e) {
     showLoading();
 });
+
+function setMode(mode) {
+    const url = new URL(window.location.href);
+
+    url.searchParams.set("pvz_id", "{{ selected_pvz.id }}");
+    url.searchParams.set("mode", mode);
+
+    // очищаем старые параметры
+    url.searchParams.delete("start_date");
+    url.searchParams.delete("end_date");
+    url.searchParams.delete("month");
+
+    window.location.href = url.toString();
+}
+
+function toggleRange() {
+    const box = document.getElementById("rangeBox");
+    box.style.display = box.style.display === "none" ? "flex" : "none";
+}
+
+function applyRange() {
+    const start = document.getElementById("startDate").value;
+    const end = document.getElementById("endDate").value;
+
+    if (!start || !end) {
+        alert("Выбери обе даты");
+        return;
+    }
+
+    const url = new URL(window.location.href);
+
+    url.searchParams.set("pvz_id", "{{ selected_pvz.id }}");
+    url.searchParams.set("mode", "range");
+    url.searchParams.set("start_date", start);
+    url.searchParams.set("end_date", end);
+
+    // убираем month
+    url.searchParams.delete("month");
+
+    window.location.href = url.toString();
+}
 </script>
 </body>
 </html>

@@ -837,17 +837,14 @@ def notify_quick():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# 🧾 ПВЗ — Сотрудники (с поддержкой нескольких ПВЗ)
-# ===============================
+# 🧾 ПВЗ — Сотрудники (1 / 3 / 6 месяцев + разбиение по месяцам)
 @app.route('/pvz/staff', methods=['GET', 'POST'])
 @login_required
 def pvz_staff():
     require_admin()
 
-    # Получаем все ПВЗ для отображения в селекторе
     pvz_list = Pvz.query.all()
 
-    # Получаем выбранный ПВЗ
     selected_pvz_id = request.args.get('pvz_id')
     if selected_pvz_id:
         selected_pvz = Pvz.query.get(int(selected_pvz_id))
@@ -861,7 +858,7 @@ def pvz_staff():
         flash("⚠️ Выберите ПВЗ")
         return redirect(url_for('pvz_management'))
 
-    # --- Очистка старых данных для этого ПВЗ ---
+    # --- очистка старых смен ---
     four_months_ago = date.today() - relativedelta(months=4)
     old_shifts = Shift.query.filter(
         Shift.pvz_id == selected_pvz.id,
@@ -873,141 +870,110 @@ def pvz_staff():
             db.session.delete(s)
         db.session.commit()
 
-    # --- Выбор месяца ---
-    month_param = request.args.get('month')
+    # =========================
+    # 📅 РЕЖИМЫ 1 / 3 / 6
+    # =========================
+    mode = request.args.get("mode", "1")
     today = date.today()
-    if month_param:
-        year, month = map(int, month_param.split('-'))
-        selected_date = date(year, month, 1)
-    else:
-        year, month = today.year, today.month
-        selected_date = date(year, month, 1)
 
-    # Получаем сотрудников выбранного ПВЗ
+    if mode == "1":
+        periods = [(today.year, today.month)]
+
+    elif mode == "3":
+        periods = []
+        for i in range(3):
+            d = today - relativedelta(months=i)
+            periods.append((d.year, d.month))
+        periods.reverse()
+
+    elif mode == "6":
+        periods = []
+        for i in range(6):
+            d = today - relativedelta(months=i)
+            periods.append((d.year, d.month))
+        periods.reverse()
+
+    else:
+        periods = [(today.year, today.month)]
+
+    # =========================
+    # 👥 сотрудники
+    # =========================
     staff_list = Staff.query.filter_by(pvz_id=selected_pvz.id).all()
 
-    # Если нет сотрудников, показываем страницу с возможностью добавления
     if not staff_list:
-        return render_template("pvz_staff.html",
-                               staff_list=[],
-                               stats=[],
-                               shifts=[],
-                               pvz_list=pvz_list,
-                               selected_pvz=selected_pvz,
-                               today=today.strftime('%d.%m.%Y'),
-                               month_label=selected_date.strftime('%B %Y'),
-                               current_worker="—",
-                               next_salary_day=today.strftime('%d.%m.%Y'),
-                               salary_to_pay=0,
-                               salary_per_worker={},
-                               worker_colors={},
-                               transition_in_progress=False)
+        return render_template(
+            "pvz_staff.html",
+            staff_list=[],
+            stats=[],
+            shifts_by_month={},
+            pvz_list=pvz_list,
+            selected_pvz=selected_pvz,
+            today=today.strftime('%d.%m.%Y'),
+            month_label="",
+            current_worker="—",
+            next_salary_day=today.strftime('%d.%m.%Y'),
+            salary_to_pay=0,
+            salary_per_worker={},
+            worker_colors={},
+            transition_in_progress=False,
+            mode=mode
+        )
 
-    # --- Цвета для работников ---
+    # =========================
+    # 🎨 цвета
+    # =========================
     worker_colors = {}
-    colors_list = ['#f8d7da33', '#d1ecf133', '#fff3cd33', '#d4edda33']
+    colors_list = ['#d0909e', '#8cb0d4', '#fff3cd33', '#d4edda33']
     for i, w in enumerate(staff_list):
         worker_colors[w.id] = colors_list[i % len(colors_list)]
 
-    # --- Загрузка смен (включая 20 дней прошлого месяца) ---
-    days_in_month = monthrange(year, month)[1]
-    start_date = date(year, month, 1) - timedelta(days=20)
-    end_date = date(year, month, days_in_month)
+    # =========================
+    # 📊 загрузка всех смен за периоды
+    # =========================
+    start_global = date(periods[0][0], periods[0][1], 1)
+    end_year, end_month = periods[-1]
+    end_global = date(end_year, end_month, monthrange(end_year, end_month)[1])
 
     existing_shifts = Shift.query.filter(
         Shift.pvz_id == selected_pvz.id,
-        Shift.date.between(start_date, end_date)
+        Shift.date.between(start_global, end_global)
     ).order_by(Shift.date.asc()).all()
 
-    # Если сотрудников меньше 2, не создаем график автоматически
+    shifts = []
+
+    # =========================
+    # 🚦 генерация смен
+    # =========================
     if len(staff_list) >= 2:
-        # --- Определяем, с кого начать месяц ---
-        prev_month_end = date(year, month, 1) - timedelta(days=1)
-        prev_month_start = prev_month_end - timedelta(days=20)
 
-        last_shifts = Shift.query.filter(
-            Shift.pvz_id == selected_pvz.id,
-            Shift.date.between(prev_month_start, prev_month_end)
-        ).order_by(Shift.date.desc()).all()
+        current_worker_index = 0
+        block_days = 0
 
-        # Определяем последнего работавшего сотрудника
-        last_worker_id = None
-        consecutive_days = 0
-        start_block_day = 0
+        total_days = (end_global - start_global).days + 1
 
-        if last_shifts:
-            current_date = prev_month_end
-            days_checked = 0
+        for i in range(total_days):
+            d = start_global + timedelta(days=i)
 
-            while current_date >= prev_month_start and days_checked < 10:
-                shift_on_date = next((s for s in last_shifts if s.date == current_date), None)
-
-                if shift_on_date:
-                    if last_worker_id is None:
-                        last_worker_id = shift_on_date.worker_id
-                        consecutive_days = 1
-                    elif shift_on_date.worker_id == last_worker_id:
-                        consecutive_days += 1
-                    else:
-                        break
-                else:
-                    break
-
-                current_date -= timedelta(days=1)
-                days_checked += 1
-
-        # Определяем, с кого начинать
-        staff_count = len(staff_list)
-        if staff_count >= 2:
-            if last_worker_id:
-                for i, staff in enumerate(staff_list):
-                    if staff.id == last_worker_id:
-                        last_worker_index = i
-                        break
-
-                if consecutive_days >= 2:
-                    start_worker_index = (last_worker_index + 1) % staff_count
-                    start_block_day = 0
-                else:
-                    start_worker_index = last_worker_index
-                    start_block_day = consecutive_days
-            else:
-                start_worker_index = 0
-                start_block_day = 0
-        else:
-            start_worker_index = 0
-            start_block_day = 0
-
-        # --- Создание графика 2/2 ---
-        shifts = []
-        current_worker_index = start_worker_index
-        days_in_current_block = start_block_day
-
-        for i in range(days_in_month):
-            d = date(year, month, i + 1)
             shift_day = next((s for s in existing_shifts if s.date == d), None)
 
             if shift_day:
                 shifts.append(shift_day)
+
                 for idx, staff in enumerate(staff_list):
                     if staff.id == shift_day.worker_id:
                         current_worker_index = idx
-                        if i > 0:
-                            prev_date = date(year, month, i)
-                            prev_shift = next((s for s in existing_shifts if s.date == prev_date), None)
-                            if prev_shift and prev_shift.worker_id == shift_day.worker_id:
-                                days_in_current_block = 1
-                            else:
-                                days_in_current_block = 0
-                        else:
-                            days_in_current_block = 0
                         break
+
+                block_days = 1
+
             else:
-                if days_in_current_block >= 2:
-                    current_worker_index = (current_worker_index + 1) % staff_count
-                    days_in_current_block = 0
+                if block_days >= 2:
+                    current_worker_index = (current_worker_index + 1) % len(staff_list)
+                    block_days = 0
 
                 worker = staff_list[current_worker_index]
+
                 shift_day = Shift(
                     pvz_id=selected_pvz.id,
                     date=d,
@@ -1016,55 +982,77 @@ def pvz_staff():
                 )
                 db.session.add(shift_day)
                 db.session.commit()
+
                 shifts.append(shift_day)
-                days_in_current_block += 1
-    else:
-        # Если меньше 2 сотрудников, просто показываем существующие смены
-        shifts = [s for s in existing_shifts if s.date.year == year and s.date.month == month]
-        shifts.sort(key=lambda x: x.date)
+                block_days += 1
 
-    # --- Текущая смена ---
-    if year == today.year and month == today.month:
-        current_shift = next((s for s in shifts if s.date == today), None)
-        current_worker = current_shift.worker.name if current_shift else "—"
     else:
-        current_worker = None
+        shifts = existing_shifts
 
-    # --- Расчет зарплаты ---
+    # =========================
+    # 📦 РАЗБИЕНИЕ ПО МЕСЯЦАМ
+    # =========================
+    shifts_by_month = {}
+
+    for y, m in periods:
+        start = date(y, m, 1)
+        end = date(y, m, monthrange(y, m)[1])
+
+        key = f"{y}-{m:02d}"
+
+        shifts_by_month[key] = [
+            s for s in shifts
+            if start <= s.date <= end
+        ]
+
+    # =========================
+    # 👤 текущий работник
+    # =========================
+    if shifts:
+        today_shift = next((s for s in shifts if s.date == today), None)
+        current_worker = today_shift.worker.name if today_shift else "—"
+    else:
+        current_worker = "—"
+
+    # =========================
+    # 💰 зарплата
+    # =========================
     today_day = today.day
-    month_for_salary = today.month
-    year_for_salary = today.year
 
     if today_day <= 10:
-        prev_month = month_for_salary - 1 if month_for_salary > 1 else 12
-        prev_year = year_for_salary if month_for_salary > 1 else year_for_salary - 1
+        prev_month = today.month - 1 if today.month > 1 else 12
+        prev_year = today.year if today.month > 1 else today.year - 1
         last_salary_date = date(prev_year, prev_month, 25)
-        next_salary_day = date(year_for_salary, month_for_salary, 10)
+        next_salary_day = date(today.year, today.month, 10)
+
     elif today_day <= 25:
-        last_salary_date = date(year_for_salary, month_for_salary, 10)
-        next_salary_day = date(year_for_salary, month_for_salary, 25)
+        last_salary_date = date(today.year, today.month, 10)
+        next_salary_day = date(today.year, today.month, 25)
+
     else:
-        last_salary_date = date(year_for_salary, month_for_salary, 25)
-        next_month = month_for_salary + 1 if month_for_salary < 12 else 1
-        next_year = year_for_salary + 1 if next_month == 1 else year_for_salary
+        last_salary_date = date(today.year, today.month, 25)
+        next_month = today.month + 1 if today.month < 12 else 1
+        next_year = today.year + 1 if next_month == 1 else today.year
         next_salary_day = date(next_year, next_month, 10)
 
-    # --- Подсчёт выплат ---
     salary_per_worker = {}
     for s in staff_list:
-        # Берем смены за период выплат
-        worker_shifts = [sh for sh in existing_shifts
-                         if sh.worker_id == s.id
-                         and last_salary_date < sh.date <= next_salary_day]
+        worker_shifts = [
+            sh for sh in existing_shifts
+            if sh.worker_id == s.id
+            and last_salary_date < sh.date <= next_salary_day
+        ]
         salary_per_worker[s.name] = sum(sh.rate for sh in worker_shifts)
 
     salary_to_pay = sum(salary_per_worker.values())
-    month_label = selected_date.strftime('%B %Y')
 
-    # Флаг для отображения уведомления о переходе
+    month_label = f"{mode} месяца"
+
     transition_in_progress = today >= date(2025, 11, 21) and today < date(2026, 1, 1)
 
-    # Добавляем информацию о времени прихода к сменам
+    # =========================
+    # ⏱ чек-ин
+    # =========================
     for shift in shifts:
         checkin = PvzCheckin.query.filter(
             PvzCheckin.staff_id == shift.worker_id,
@@ -1074,7 +1062,9 @@ def pvz_staff():
 
         shift.checkin_time = checkin.timestamp if checkin else None
 
-    # --- Статистика ---
+    # =========================
+    # 📈 stats
+    # =========================
     stats = []
     for s in staff_list:
         shifts_done = sum(1 for sh in shifts if sh.worker_id == s.id and sh.date <= today)
@@ -1091,20 +1081,24 @@ def pvz_staff():
             'salary_expected': salary_expected
         })
 
-    return render_template("pvz_staff.html",
-                           staff_list=staff_list,
-                           stats=stats,
-                           shifts=shifts,
-                           current_worker=current_worker,
-                           pvz_list=pvz_list,
-                           selected_pvz=selected_pvz,
-                           today=today.strftime('%d.%m.%Y'),
-                           month_label=month_label,
-                           next_salary_day=next_salary_day.strftime('%d.%m.%Y'),
-                           salary_to_pay=salary_to_pay,
-                           salary_per_worker=salary_per_worker,
-                           worker_colors=worker_colors,
-                           transition_in_progress=transition_in_progress)
+    return render_template(
+        "pvz_staff.html",
+        staff_list=staff_list,
+        stats=stats,
+        shifts=shifts,
+        shifts_by_month=shifts_by_month,
+        current_worker=current_worker,
+        pvz_list=pvz_list,
+        selected_pvz=selected_pvz,
+        today=today.strftime('%d.%m.%Y'),
+        month_label=month_label,
+        next_salary_day=next_salary_day.strftime('%d.%m.%Y'),
+        salary_to_pay=salary_to_pay,
+        salary_per_worker=salary_per_worker,
+        worker_colors=worker_colors,
+        transition_in_progress=transition_in_progress,
+        mode=mode
+    )
 
 
 # ➕ Добавление сотрудника (с привязкой к ПВЗ)
